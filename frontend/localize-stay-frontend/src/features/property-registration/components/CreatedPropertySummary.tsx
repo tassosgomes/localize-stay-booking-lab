@@ -3,11 +3,15 @@ import type { Property } from '../api/propertyApi.ts';
 
 export interface CreatedPropertySummaryProps {
   property: Property;
+  showEditAction: boolean;
+  onStartEditing: () => void;
   onRequestNewCreate: () => void;
 }
 
 export function CreatedPropertySummary({
   property,
+  showEditAction,
+  onStartEditing,
   onRequestNewCreate,
 }: CreatedPropertySummaryProps) {
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
@@ -68,9 +72,16 @@ export function CreatedPropertySummary({
       {copyFeedback !== null ? (
         <p role="status">{copyFeedback}</p>
       ) : null}
-      <button type="button" className="created-property-summary__new" onClick={onRequestNewCreate}>
-        Cadastrar outra hospedagem
-      </button>
+      <div className="created-property-summary__actions">
+        {showEditAction ? (
+          <button type="button" className="created-property-summary__edit" onClick={onStartEditing}>
+            Editar hospedagem
+          </button>
+        ) : null}
+        <button type="button" className="created-property-summary__new" onClick={onRequestNewCreate}>
+          Cadastrar outra hospedagem
+        </button>
+      </div>
     </section>
   );
 }

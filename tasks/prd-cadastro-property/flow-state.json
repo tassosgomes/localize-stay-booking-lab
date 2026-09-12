@@ -4,30 +4,30 @@
   "original_base_ref": "5d0f9eff8548db9d8846782c3133743790014825",
   "base_ref": "5d0f9eff8548db9d8846782c3133743790014825",
   "target_ref": null,
-  "last_checkpoint": "cb37c5263d36f79fb84919bb77de7b65eace3f06",
+  "last_checkpoint": "8785df484fcd2c42d0948d08abbc006f2ff40df8",
   "phase": "checkpoint",
-  "active_task": "4.0",
+  "active_task": "5.0",
   "attempt": 1,
   "max_attempts": 3,
   "full_attempt": 0,
-  "transport_retries": 0,
+  "transport_retries": 2,
   "specs": ["techspec.md", "frontend-techspec.md", "api-contract.yaml"],
-  "delivery": "branch",
+  "delivery": "pr",
   "validated_commit": null,
   "validated_tree": null,
   "worktree": "/home/tsgomes/github-tassosgomes/localize-stay-booking-lab-prd-cadastro-property",
   "pending_delegation": {
     "role": "integrator",
     "mode": "checkpoint-task",
-    "task": "4.0",
+    "task": "5.0",
     "attempt": "1/3"
   },
   "last_result": {
     "outcome": "approved",
     "mode": "focused",
-    "task": "4.0",
+    "task": "5.0",
     "attempt": 1,
-    "report": "tasks/prd-cadastro-property/4_task_review.md",
+    "report": "tasks/prd-cadastro-property/5_task_review.md",
     "blockers": 0,
     "recommendations": 3
   },
@@ -45,16 +45,20 @@
       "result": "CHECKPOINT OK cb37c52"
     },
     {
-      "event": "implement-4.0-attempt1",
-      "result": "IMPLEMENTATION COMPLETE: gate PropertyCreate.test=9 APROVADO"
+      "event": "cycle-4.0",
+      "result": "CHECKPOINT OK 8785df4"
     },
     {
-      "event": "validate-4.0-focused",
+      "event": "implement-5.0-attempt1",
+      "result": "IMPLEMENTATION COMPLETE: gate PropertyUpdate RTL=12 Playwright=2"
+    },
+    {
+      "event": "validate-5.0-focused",
       "result": "VALIDACAO APROVADA focused (3 recs nao bloqueantes)"
     },
     {
-      "event": "delegate-checkpoint-4.0",
-      "result": "pending: integrator checkpoint-task 4.0"
+      "event": "delegate-checkpoint-5.0",
+      "result": "pending: integrator checkpoint-task 5.0"
     }
   ]
 }

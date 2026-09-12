@@ -104,6 +104,7 @@ textarea:focus:not(:focus-visible) {
 
 .property-workspace h1,
 .created-property-summary h2,
+.property-form h2,
 .form-error-summary h2,
 .property-workspace__confirm h2 {
   font-size: var(--display-md-size);
@@ -180,6 +181,7 @@ textarea:focus:not(:focus-visible) {
 }
 
 .property-form__submit,
+.property-form__cancel,
 .created-property-summary button,
 .property-workspace__confirm button {
   appearance: none;
@@ -192,22 +194,42 @@ textarea:focus:not(:focus-visible) {
 }
 
 .property-form__submit,
+.created-property-summary__edit,
 .created-property-summary__new,
 .property-workspace__confirm-actions button:first-child {
   background-color: var(--color-primary);
   color: var(--color-on-primary);
 }
 
-.property-form__submit:disabled {
+.property-form__submit:disabled,
+.property-form__cancel:disabled {
   background-color: var(--color-primary-disabled);
   color: var(--color-ink);
   cursor: not-allowed;
+}
+
+.property-form__actions,
+.created-property-summary__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.property-form__cancel {
+  background-color: var(--color-surface-strong);
+  color: var(--color-ink);
 }
 
 .created-property-summary button,
 .property-workspace__confirm-actions button:last-child {
   background-color: var(--color-surface-strong);
   color: var(--color-ink);
+}
+
+.created-property-summary button.created-property-summary__edit,
+.created-property-summary button.created-property-summary__new {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
 }
 
 .created-property-summary__list {

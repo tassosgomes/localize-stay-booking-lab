@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 
 export interface OperationFeedbackProps {
   role: 'status' | 'alert';
@@ -15,9 +15,17 @@ export function OperationFeedback({
   traceId = null,
   children,
 }: OperationFeedbackProps) {
+  const titleId = useId();
+
   return (
-    <div className={`operation-feedback operation-feedback--${role}`} role={role}>
-      <p className="operation-feedback__title">{title}</p>
+    <div
+      className={`operation-feedback operation-feedback--${role}`}
+      role={role}
+      aria-labelledby={titleId}
+    >
+      <p id={titleId} className="operation-feedback__title">
+        {title}
+      </p>
       <p>{message}</p>
       {traceId !== null && traceId !== '' ? (
         <p>

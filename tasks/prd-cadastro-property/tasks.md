@@ -77,7 +77,7 @@ Não há habilitador backend novo. A Fundação é dependência externa, não co
 - [x] 2.0 Editar dados cadastrais preservando ownership e estado
 - [x] 3.0 Preparar integração frontend tipada com o contrato Catalog
 - [x] 4.0 Cadastrar Property pela interface acessível
-- [ ] 5.0 Editar Property na interface e provar a jornada full-stack
+- [x] 5.0 Editar Property na interface e provar a jornada full-stack
 
 ## Rastreabilidade US → Tasks
 
