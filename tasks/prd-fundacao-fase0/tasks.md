@@ -101,7 +101,7 @@ efetivamente consumido, não ordem de aprendizado sugerida.
 - [x] 6.0 Mensageria de diagnóstico: Booking publica, Notification Worker consome (V-03)
 - [x] 7.0 Frontend exibe status dos 3 serviços via CORS (V-04)
 - [x] 8.0 Contratos exportados e validados: OpenAPI, AsyncAPI, Data Contract (V-05)
-- [ ] 9.0 Registro do vhost RabbitMQ como CustomMessaging no OpenMetadata (V-06)
+- [x] 9.0 Registro do vhost RabbitMQ como CustomMessaging no OpenMetadata (V-06)
 
 ## Rastreabilidade Fatias TechSpec → Tasks
 
