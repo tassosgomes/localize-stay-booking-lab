@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <UserSecretsId>localizestay-catalog-dev</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../2-Application/LocalizeStay.Catalog.Application/LocalizeStay.Catalog.Application.csproj" />
+    <ProjectReference Include="../../4-Infra/LocalizeStay.Catalog.Infra/LocalizeStay.Catalog.Infra.csproj" />
+  </ItemGroup>
+
+</Project>

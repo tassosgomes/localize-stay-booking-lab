@@ -1,1 +1,6 @@
 .vscode
+# Artefatos derivados de build/teste .NET — nunca versionar (task 3.0: evita
+# que .cs gerados em obj/ entrem no escopo do `dotnet format` do gate).
+[Bb]in/
+[Oo]bj/
+TestResults/
