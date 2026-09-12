@@ -22,3 +22,8 @@ export function getEnv(): FrontendEnv {
     paymentUrl: required('VITE_PAYMENT_URL'),
   };
 }
+
+export function catalogApiBaseUrl(catalogUrl: string): string {
+  const trimmed = catalogUrl.replace(/\/+$/, '');
+  return trimmed.endsWith('/v1') ? trimmed : `${trimmed}/v1`;
+}
