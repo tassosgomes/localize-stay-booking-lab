@@ -4,7 +4,7 @@
   "base_ref": "f5d6cda4c63487b64b9e8a13811d1e8f21d4a846",
   "branch": "feature/prd-solicitacao-reserva",
   "delivery": "branch",
-  "full_attempt": 1,
+  "full_attempt": 2,
   "history": [
     {
       "detail": "Plano aprovado (backend+frontend), prerequisito fundacao-fase0 merged em main; gate OK; nova worktree autorizada pelo usuario",
@@ -113,19 +113,33 @@
     {
       "event": "task-6.0-revalidated",
       "detail": "F1 aprovado em revalidation; checkpoint do fix"
+    },
+    {
+      "event": "task-6.0-fix-done",
+      "detail": "checkpoint fc5adc9 apos revalidation approved"
+    },
+    {
+      "event": "full-approved",
+      "detail": "round 2 sobre fc5adc9/tree 787deb5a; F2 registrado como gap do harness sem dono"
+    },
+    {
+      "event": "revalidation-required",
+      "detail": "base externa avancou pos-aprovacao; reintegracao + revalidacao (nao conta como defeito)"
+    },
+    {
+      "event": "integration-blocked-reports",
+      "detail": "commit de relatorios autorizado antes do rebase (padrao 62ac568/621e75f)"
     }
   ],
-  "last_checkpoint": "da4dfdccb40491df5c8821fc786823849bdc083a",
-  "last_result": "VALIDATION APPROVED revalidation F1 (validator, ses_f682d94f8ffe0sdIMBzBXrO7nm): gate 2/2 x2, preflight :5175+:5173 OK, irma 14/14, diff restrito ao wiring",
+  "last_checkpoint": "fc5adc9468fa72d31a8ada452b7a8abf7b44bf57",
+  "last_result": "INTEGRATION BLOCKED mecanico (integrator, ses_f6810058effewh70m6DkRBcbtL): flow-state + full_review sujos impedem rebase; overlap zero com base externa. Autorizado: commitar relatorios + rebasear",
   "max_attempts": 3,
   "original_base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
   "pending_delegation": {
     "role": "integrator",
-    "mode": "checkpoint-task",
-    "task": "6.0",
-    "attempt": 2
+    "mode": "prepare-integration-commit-reports"
   },
-  "phase": "validating",
+  "phase": "integration",
   "schema_version": 1,
   "specs": [
     "techspec.md",
@@ -134,7 +148,7 @@
   ],
   "target_ref": "f5d6cda4c63487b64b9e8a13811d1e8f21d4a846",
   "transport_retries": 2,
-  "validated_commit": null,
-  "validated_tree": null,
+  "validated_commit": "fc5adc9468fa72d31a8ada452b7a8abf7b44bf57",
+  "validated_tree": "787deb5a",
   "worktree": "/home/tsgomes/github-tassosgomes/localize-stay-booking-lab-prd-solicitacao-reserva"
 }

@@ -131,3 +131,73 @@ E2E residual `localize-stay-e2e-pg` removido ao final.
 - R4: `dev-up.sh` morre com o grupo de processo se a chamada for interrompida
   (serviços recebem shutdown); subir com `setsid` destacado quando orquestrado
   por ferramenta. Só tooling de ambiente, fora do PRD.
+
+---
+
+# FULL Validation — RODADA 2 (pós-correção F1; worker fresco)
+
+- Mode: **full** (julgando a árvore FINAL contra `tasks/prd-solicitacao-reserva/` +
+  `prd.md`; focused 1.0–6.0, round-1 full e revalidation 6.0 usados só como referência)
+- base_ref: `f5d6cda4c63487b64b9e8a13811d1e8f21d4a846` (inalterada)
+- validated_commit: `fc5adc9468fa72d31a8ada452b7a8abf7b44bf57`
+- validated_tree: `787deb5a7eb15debd7fe194d415734f45abe0eb5`
+- Delta desde o commit validado da rodada 1 (`da4dfdc`): **só wiring E2E**
+  (`scripts/dev-up.sh` +7, `e2e/start-stack.mjs` +58/-1, `playwright.config.ts` +1)
+  + bookkeeping (`6_task_review.md` §revalidação, `flow-state.json`, este relatório).
+  **Zero diff** em `services/booking/**` e `frontend/.../src/**` desde `da4dfdc`
+  (`git diff da4dfdc..HEAD --name-only` vazio nos dois) — todo o produto 1.0–5.0
+  intacto; julgamento semântico da rodada 1 segue válido para ele.
+- HEAD e árvore conferidos idênticos no início e no fim desta rodada. Único dirty:
+  `flow-state.json` (já sujo ANTES — bookkeeping do reopen, não tocado) +
+  `full_review.md` (este relatório, deliverable mandatado). Nenhum código,
+  checkbox, frontmatter, `flow-state.json` ou commit alterado pelo validator.
+
+## Resultado
+
+**FULL VALIDATION APROVADA** — F1 encerrada de forma estável (causa raiz no wiring,
+provada 2/2 E2E em 2 runs + 3 preflights); nenhum outro comportamento regrediu;
+F2 segue não bloqueante sem mudança de quadro; 0 recomendações novas
+(R1–R4 da rodada 1 continuam válidas como acompanhamento).
+
+## Gates reexecutados pelo validator nesta rodada (todos nesta sessão)
+
+| # | Comando | Resultado |
+|---|---|---|
+| 1a | `gate.sh --filter="...UnitTests.Reservations.ReservationTests" --filter="...IntegrationTests.Reservations.ReservationPersistenceTests"` | **APROVADO** — 21 + 2, 5 builds 0W/0E |
+| 1b | `gate.sh --filter="...IntegrationTests.Catalog.CatalogAvailabilityClientTests"` | **APROVADO** — 4/4 |
+| 1c | `gate.sh --filter="...IntegrationTests.Reservations.ReservationEndpointTests"` | **APROVADO** — 7/7 |
+| 2a | `gate.sh --filter="reservationApi"` (sem sufixo; ver F2) | **APROVADO** — 14/14 |
+| 2b | `gate.sh --filter="ReservationRequestPage" --filter="reservationFormValidation" --filter="reservationErrorMapping"` | **APROVADO** — 17+20+10 |
+| 2c | suíte vitest completa no dir do frontend | **APROVADO** — **102/102 em 9 arquivos** (63 reserva + 39 irmã/fundação) |
+| 3a | `gate.sh --filter="reservation-request"` (canônico, run 1) | **APROVADO** — `reservation-request=2 rtl=0 e2e=2` |
+| 3b | `gate.sh --filter="reservation-request"` (canônico, run 2, anti-flake) | **APROVADO** — idêntico a 3a |
+| 4 | `npm run api:generate` + `git diff --exit-code` booking.ts e catalog.ts | **DRIFT ZERO** nos dois |
+
+Stack E2E (operação de ambiente permitida, já no ar pelo caminho sancionado
+`dev-up.sh` com o fix): Catalog :5101, Booking :5102, frontend :5173 `/health/ready`
+200. Preflights `OPTIONS /v1/reservations` conferidos ao vivo: `:5175` localhost e
+`127.0.0.1` → 204 **com** `Access-Control-Allow-Origin` correto (fix ativo);
+`:5173` → header correto (default de produto preservado, sem regressão).
+
+## F1: resolvido de forma estável (task dona 6.0, já aprovada em revalidation)
+
+- Causa raiz confirmada no wiring, correção mínima e aditiva: `dev-up.sh` exporta
+  `Cors__AllowedOrigins__0/1` (`:5175` localhost + 127.0.0.1) **só** no startup do
+  Booking via env (default de produto `:5173` em `CorsExtensions.cs`/`appsettings`
+  intacto); `start-stack.mjs` ganha `probeBookingCors()` não-fatal + plumbing
+  `VITE_BOOKING_API_URL`; `playwright.config.ts` ganha `E2E_BOOKING_URL`.
+- Estabilidade: E2E canônico **2/2 em 2 runs seguidos nesta rodada** (somados aos 2/2
+  ×2 da revalidation = 4 aprovações consecutivas do gate canônico limpo, sem env
+  extra) + irmã `PropertyUpdate` 14/14 verificada na revalidation (harness
+  partilhado intacto). Nenhum outro comportamento regrediu: backend 21+2/4/7/7,
+  frontend 14/17+20+10 e suíte 102/102 todos verdes na árvore final.
+- Nota de ambiente (sem efeito no julgamento): `vitest run` invocado da **raiz** do
+  repo falha com timeouts `findByRole` (MSW/setup resolvidos pelo cwd); do **dir do
+  frontend** — como o gate invoca — passa 102/102. Artefato de invocação, não do código.
+
+## F2: sem mudança de quadro (não bloqueante, sem dono)
+
+- `--filter="reservationApi.test"` segue selecionando zero (`GATE: REPROVADO` por
+  Invariante 2, filtro vazio — não suíte ausente), idêntico à rodada 1; cobertura
+  provada por seletores equivalentes (14/14) + suíte completa. Harness de main,
+  sem dono neste PRD; nenhuma ação requerida.
