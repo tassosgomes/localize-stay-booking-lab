@@ -96,7 +96,7 @@ efetivamente consumido, não ordem de aprendizado sugerida.
 - [x] 1.0 Convenções de solução compartilhadas (EN-01)
 - [x] 2.0 Bootstrap de banco: database, roles, schemas e grants (EN-02)
 - [x] 3.0 Catalog sobe e prova conexão real com Postgres (V-01)
-- [ ] 4.0 Booking sobe com o mesmo padrão de Catalog (V-02)
+- [x] 4.0 Booking sobe com o mesmo padrão de Catalog (V-02)
 - [ ] 5.0 Payment sobe com o mesmo padrão de Catalog (V-02)
 - [ ] 6.0 Mensageria de diagnóstico: Booking publica, Notification Worker consome (V-03)
 - [ ] 7.0 Frontend exibe status dos 3 serviços via CORS (V-04)

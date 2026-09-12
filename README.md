@@ -36,6 +36,44 @@ dotnet test services/catalog/LocalizeStay.Catalog.sln \
   --filter "LocalizeStay.Catalog.IntegrationTests.HealthCheckTests"
 ```
 
+## Como rodar Booking localmente
+
+Mesmo padrão do Catalog (réplica estrutural, solution própria), com schema
+`booking`, role `booking_role` e porta 5102. Pré-requisitos: .NET 10 SDK,
+Docker (para os Testcontainers dos testes) e acesso de rede ao `postgres-main`
+com o bootstrap `db/bootstrap` já executado (database `localize_stay`, schemas
+e `booking_role` provisionados).
+
+```bash
+# 1. Apontar para o Postgres real (user-secrets `localizestay-booking-dev`)
+dotnet user-secrets set "ConnectionStrings:Booking" \
+  "Host=<postgres-main-host>;Port=5432;Database=localize_stay;Username=booking_role;Password=<senha-do-operador>" \
+  --project services/booking/src/1-Services/LocalizeStay.Booking.Api
+
+# 2. Aplicar a migration inicial no schema `booking` (step de deploy, nunca no boot)
+ConnectionStrings__Booking="<mesma-string>" \
+  dotnet ef database update \
+  --project services/booking/src/4-Infra/LocalizeStay.Booking.Infra \
+  --startup-project services/booking/src/1-Services/LocalizeStay.Booking.Api
+
+# 3. Subir o serviço (porta 5102)
+dotnet run --project services/booking/src/1-Services/LocalizeStay.Booking.Api
+
+# 4. Checar
+curl localhost:5102/health/live   # 200 Healthy, sem depender do banco
+curl localhost:5102/health/ready  # 200 Healthy, consultando o Postgres real
+```
+
+Swagger (skeleton, sem endpoints de negócio ainda): `http://localhost:5102/swagger`.
+
+Testes de integração (Postgres efêmero via Testcontainers, sem tocar no
+`postgres-main` real):
+
+```bash
+dotnet test services/booking/LocalizeStay.Booking.sln \
+  --filter "LocalizeStay.Booking.IntegrationTests.HealthCheckTests"
+```
+
 ## Como configurar `dotnet user-secrets`
 
 Nenhuma credencial vive em `appsettings*.json` versionado. Cada desenvolvedor
