@@ -16,8 +16,9 @@ RUN dotnet publish services/payment/src/1-Services/LocalizeStay.Payment.Api/Loca
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
-RUN adduser --disabled-password --gecos "" appuser
-USER appuser
+# mcr.microsoft.com/dotnet/aspnet é Ubuntu minimalista (sem adduser/useradd),
+# mas já traz um usuário non-root pronto: "app".
+USER app
 COPY --from=build /app/publish .
 
 # appsettings.json fixa "urls" em localhost (dev); em container precisa
