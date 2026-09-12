@@ -10,6 +10,10 @@ test-results/
 # Artefatos derivados do frontend (task 7.0) — nunca versionar node_modules/dist.
 node_modules/
 dist/
+coverage/
+# Saída do runner Playwright da task 6.0 (error-context, screenshots, traces).
+test-results/
+playwright-report/
 # Logs/PIDs locais de scripts/dev-up.sh — nunca versionar.
 .dev/
 .env

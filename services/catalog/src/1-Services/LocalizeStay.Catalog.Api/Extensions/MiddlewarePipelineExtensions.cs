@@ -1,3 +1,4 @@
+using LocalizeStay.Catalog.Api.Endpoints;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 
@@ -16,6 +17,10 @@ public static class MiddlewarePipelineExtensions
         app.UseCorsConfiguration();
         app.MapHealthCheckConfiguration();
         app.MapControllers();
+
+        // STUB DE TESTE/E2E da task 6.0 (prd-solicitacao-reserva): remover
+        // quando Catalog F04 implementar o endpoint oficial.
+        app.MapE2EAvailabilityStub();
 
         return app;
     }
