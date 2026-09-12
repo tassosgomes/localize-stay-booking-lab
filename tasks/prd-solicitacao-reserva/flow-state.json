@@ -137,17 +137,18 @@
     {
       "event": "full-approved-3",
       "detail": "round 3 sobre 0ba2d07/tree f994a241;entrega"
+    },
+    {
+      "event": "prd-complete",
+      "detail": "complete-prd sobre 0ba2d07/tree f994a241; commit final 68d3267 (relatorios); delivery branch"
     }
   ],
-  "last_checkpoint": "0ba2d07a7aec47ae3928e608a9d7f907efe1e640",
-  "last_result": "FULL VALIDATION APROVADA round 3 (validator, ses_f680d4fc7ffeflRsVjyNJNJa75): rebase puro; backend+frontend+E2E+drift verdes; zero regressoes",
+  "last_checkpoint": "68d326701a3c42b1060137aa4908066e870d1871",
+  "last_result": "PRD COMPLETE (integrator, ses_f68022c53ffe4ZoYsQVVbfZkHG): branch feature/prd-solicitacao-reserva @ 68d3267 sobre af25088, sem publicar; worktree preservada",
   "max_attempts": 3,
   "original_base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
-  "pending_delegation": {
-    "role": "integrator",
-    "mode": "complete-prd"
-  },
-  "phase": "delivery",
+  "pending_delegation": null,
+  "phase": "complete",
   "schema_version": 1,
   "specs": [
     "techspec.md",
