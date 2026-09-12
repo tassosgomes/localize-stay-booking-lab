@@ -1,0 +1,76 @@
+/*
+ * Design tokens extraídos de /DESIGN.md (preset "airbnb" via getdesign).
+ * Fonte primária (Airbnb Cereal VF) não está licenciada para este projeto;
+ * usamos Inter como substituto recomendado pelo próprio DESIGN.md.
+ */
+:root {
+  /* Colors */
+  --color-primary: #ff385c;
+  --color-primary-active: #e00b41;
+  --color-primary-disabled: #ffd1da;
+  --color-error-text: #c13515;
+  --color-error-text-hover: #b32505;
+  --color-ink: #222222;
+  --color-body: #3f3f3f;
+  --color-muted: #6a6a6a;
+  --color-muted-soft: #929292;
+  --color-hairline: #dddddd;
+  --color-hairline-soft: #ebebeb;
+  --color-border-strong: #c1c1c1;
+  --color-canvas: #ffffff;
+  --color-surface-soft: #f7f7f7;
+  --color-surface-strong: #f2f2f2;
+  --color-on-primary: #ffffff;
+
+  /* Typography */
+  --font-family-base: 'Inter', 'Airbnb Cereal VF', Circular, -apple-system, system-ui, Roboto,
+    'Helvetica Neue', sans-serif;
+
+  --display-xl-size: 28px;
+  --display-xl-weight: 700;
+  --display-xl-line-height: 1.43;
+
+  --display-md-size: 21px;
+  --display-md-weight: 700;
+  --display-md-line-height: 1.43;
+
+  --title-sm-size: 16px;
+  --title-sm-weight: 500;
+  --title-sm-line-height: 1.25;
+
+  --body-md-size: 16px;
+  --body-md-weight: 400;
+  --body-md-line-height: 1.5;
+
+  --body-sm-size: 14px;
+  --body-sm-weight: 400;
+  --body-sm-line-height: 1.43;
+
+  --caption-sm-size: 13px;
+  --caption-sm-weight: 400;
+  --caption-sm-line-height: 1.23;
+
+  /* Radius */
+  --radius-none: 0px;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 32px;
+  --radius-full: 9999px;
+
+  /* Spacing */
+  --space-xxs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-base: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+  --space-section: 64px;
+
+  /* Elevation (single tier, per DESIGN.md) */
+  --shadow-card: rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px 0,
+    rgba(0, 0, 0, 0.1) 0 4px 8px 0;
+}
