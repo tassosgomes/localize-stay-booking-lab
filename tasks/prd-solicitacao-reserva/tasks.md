@@ -114,7 +114,7 @@ aqui).
 - [x] 1.0 Domínio e persistência da Reservation com RN-02 a RN-06 (V-01)
 - [x] 2.0 Cliente de disponibilidade de Catalog: 200/404/falha (V-02)
 - [x] 3.0 Endpoint completo `POST /v1/reservations`: 7 cenários + evento (V-03)
-- [ ] 4.0 Preparar integração frontend tipada com o contrato de Booking (EN-FE-01)
+- [x] 4.0 Preparar integração frontend tipada com o contrato de Booking (EN-FE-01)
 - [ ] 5.0 Solicitar reserva pela interface acessível: 7 desfechos (V-FE-01)
 - [ ] 6.0 Provar a jornada full-stack com Playwright e fechar o gate (V-FE-02)
 

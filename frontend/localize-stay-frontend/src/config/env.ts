@@ -7,7 +7,9 @@ export interface FrontendEnv {
   paymentUrl: string;
 }
 
-function required(name: 'VITE_CATALOG_URL' | 'VITE_BOOKING_URL' | 'VITE_PAYMENT_URL'): string {
+function required(
+  name: 'VITE_CATALOG_URL' | 'VITE_BOOKING_URL' | 'VITE_BOOKING_API_URL' | 'VITE_PAYMENT_URL',
+): string {
   const value = import.meta.env[name] as string | undefined;
   if (value === undefined || value === '') {
     throw new Error(`Missing required environment variable ${name} (see .env.development)`);
@@ -26,4 +28,11 @@ export function getEnv(): FrontendEnv {
 export function catalogApiBaseUrl(catalogUrl: string): string {
   const trimmed = catalogUrl.replace(/\/+$/, '');
   return trimmed.endsWith('/v1') ? trimmed : `${trimmed}/v1`;
+}
+
+// API de Booking — Solicitação de Reserva (POST /v1/reservations). Distinta da
+// URL de health e da de Catalog (Booking :5102, Catalog :5101); já inclui /v1.
+// Cada feature valida somente a variável do serviço que consome.
+export function getBookingApiUrl(): string {
+  return required('VITE_BOOKING_API_URL');
 }
