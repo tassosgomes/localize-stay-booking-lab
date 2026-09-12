@@ -6,7 +6,8 @@ builder.Services
     .AddCorsConfiguration(builder.Configuration)
     .AddSwaggerConfiguration()
     .AddPersistenceConfiguration(builder.Configuration)
-    .AddHealthCheckConfiguration();
+    .AddMessagingConfiguration(builder.Configuration)
+    .AddHealthCheckConfiguration(builder.Configuration);
 
 var app = builder.Build();
 

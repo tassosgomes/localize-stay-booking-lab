@@ -1,4 +1,3 @@
-using LocalizeStay.Booking.Infra.Persistence.HealthChecks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Routing;
@@ -6,15 +5,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace LocalizeStay.Booking.Api.Extensions;
+namespace LocalizeStay.Notification.Worker.Extensions;
 
 public static class HealthCheckExtensions
 {
     public static IServiceCollection AddHealthCheckConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
         var builder = services.AddHealthChecks()
-            .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"])
-            .AddCheck<BookingReadinessCheck>("booking-db", tags: ["ready"]);
+            .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"]);
 
         if (RabbitMqSettings.TryRead(configuration, out var settings) && settings is not null)
         {

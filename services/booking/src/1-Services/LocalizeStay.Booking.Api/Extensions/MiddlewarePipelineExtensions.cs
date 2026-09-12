@@ -14,6 +14,7 @@ public static class MiddlewarePipelineExtensions
         app.UseSwaggerConfiguration();
         app.UseCorsConfiguration();
         app.MapHealthCheckConfiguration();
+        app.MapDiagnosticsEndpoints();
 
         return app;
     }
