@@ -59,7 +59,7 @@ Sem uma fonte única e confiável do que existe para reservar e do que está liv
 
 | # | Feature | Descrição | Prioridade | Status | PRD |
 |---|---|---|---|---|---|
-| F01 | Cadastro de Property | Host cria e edita uma hospedagem | Must Have | `planned` | — |
+| F01 | Cadastro de Property | Host cria e edita uma hospedagem | Must Have | `prd-ready` | [`tasks/prd-cadastro-property/prd.md`](../../tasks/prd-cadastro-property/prd.md) |
 | F02 | Cadastro de Accommodation | Host cria e edita uma unidade reservável vinculada a uma Property | Must Have | `planned` | — |
 | F03 | Consulta de Property/Accommodation | Guest e Host consultam hospedagens e unidades cadastradas | Must Have | `planned` | — |
 | F04 | Consulta de Disponibilidade | Guest e Booking consultam se uma Accommodation está livre em um período para um nº de hóspedes | Must Have | `planned` | — |
