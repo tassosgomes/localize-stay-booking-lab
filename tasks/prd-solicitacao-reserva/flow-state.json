@@ -5,9 +5,9 @@
   "original_base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
   "base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
   "target_ref": null,
-  "last_checkpoint": null,
+  "last_checkpoint": "cbb0242d3d3de54a7ecc05cfb03101b909d75924",
   "phase": "validating",
-  "active_task": "1.0",
+  "active_task": "2.0",
   "attempt": 1,
   "max_attempts": 3,
   "full_attempt": 0,
@@ -20,11 +20,11 @@
   "delivery": "branch",
   "validated_commit": null,
   "validated_tree": null,
-  "last_result": "VALIDATION APPROVED (validator focused, ses_f692457edffeK2zCiF56Fu37Yw); review em 1_task_review.md; gate reexecutado exit 0",
+  "last_result": "VALIDATION APPROVED 2.0 (validator focused, ses_f69138066ffeB9MgSxRX0LglCU); review em 2_task_review.md; 0 bloqueantes",
   "pending_delegation": {
     "role": "integrator",
     "mode": "checkpoint-task",
-    "task": "1.0",
+    "task": "2.0",
     "attempt": 1
   },
   "history": [
@@ -35,6 +35,10 @@
     {
       "event": "task-1.0-implement-ok",
       "detail": "attempt 1 gate verde; correcao metadata gate_command em 1_task.md"
+    },
+    {
+      "event": "task-1.0-done",
+      "detail": "checkpoint cbb0242 apos focused approved"
     }
   ]
 }
