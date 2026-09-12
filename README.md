@@ -74,6 +74,44 @@ dotnet test services/booking/LocalizeStay.Booking.sln \
   --filter "LocalizeStay.Booking.IntegrationTests.HealthCheckTests"
 ```
 
+## Como rodar Payment localmente
+
+Mesmo padrão do Catalog (réplica estrutural, solution própria), com schema
+`payment`, role `payment_role` e porta 5103. Pré-requisitos: .NET 10 SDK,
+Docker (para os Testcontainers dos testes) e acesso de rede ao `postgres-main`
+com o bootstrap `db/bootstrap` já executado (database `localize_stay`, schemas
+e `payment_role` provisionados).
+
+```bash
+# 1. Apontar para o Postgres real (user-secrets `localizestay-payment-dev`)
+dotnet user-secrets set "ConnectionStrings:Payment" \
+  "Host=<postgres-main-host>;Port=5432;Database=localize_stay;Username=payment_role;Password=<senha-do-operador>" \
+  --project services/payment/src/1-Services/LocalizeStay.Payment.Api
+
+# 2. Aplicar a migration inicial no schema `payment` (step de deploy, nunca no boot)
+ConnectionStrings__Payment="<mesma-string>" \
+  dotnet ef database update \
+  --project services/payment/src/4-Infra/LocalizeStay.Payment.Infra \
+  --startup-project services/payment/src/1-Services/LocalizeStay.Payment.Api
+
+# 3. Subir o serviço (porta 5103)
+dotnet run --project services/payment/src/1-Services/LocalizeStay.Payment.Api
+
+# 4. Checar
+curl localhost:5103/health/live   # 200 Healthy, sem depender do banco
+curl localhost:5103/health/ready  # 200 Healthy, consultando o Postgres real
+```
+
+Swagger (skeleton, sem endpoints de negócio ainda): `http://localhost:5103/swagger`.
+
+Testes de integração (Postgres efêmero via Testcontainers, sem tocar no
+`postgres-main` real):
+
+```bash
+dotnet test services/payment/LocalizeStay.Payment.sln \
+  --filter "LocalizeStay.Payment.IntegrationTests.HealthCheckTests"
+```
+
 ## Como configurar `dotnet user-secrets`
 
 Nenhuma credencial vive em `appsettings*.json` versionado. Cada desenvolvedor
