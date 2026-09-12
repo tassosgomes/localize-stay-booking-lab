@@ -44,7 +44,8 @@ public sealed class FakeCatalogServerFactory : IAsyncDisposable
 
     public string? LastRequestPathAndQuery => Volatile.Read(ref _state.LastPathAndQuery);
 
-    public static async Task<FakeCatalogServerFactory> StartAsync(FakeCatalogBehavior behavior)
+    public static async Task<FakeCatalogServerFactory> StartAsync(
+        FakeCatalogBehavior behavior, string? okBody = null)
     {
         var state = new State();
 
@@ -94,7 +95,9 @@ public sealed class FakeCatalogServerFactory : IAsyncDisposable
                             default:
                                 context.Response.StatusCode = StatusCodes.Status200OK;
                                 context.Response.ContentType = "application/json";
-                                await context.Response.WriteAsync(OkBody);
+                                // okBody customizado permite fatos hipotéticos de 200
+                                // (active=false, availableForPeriod=false etc.).
+                                await context.Response.WriteAsync(okBody ?? OkBody);
                                 break;
                         }
                     });

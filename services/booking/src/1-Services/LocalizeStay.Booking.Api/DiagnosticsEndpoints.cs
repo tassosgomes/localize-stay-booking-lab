@@ -17,7 +17,13 @@ public static class DiagnosticsEndpoints
 {
     public static IEndpointRouteBuilder MapDiagnosticsEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapPost("/internal/diagnostics/ping", HandlePingAsync);
+        // Endpoint técnico da fundação (V-03), isolado do documento público de
+        // Swagger consumido pelo frontend: o GroupName interno faz o path sumir
+        // do doc "v1" sem espalhar infraestrutura de diagnóstico pelo contrato.
+        endpoints.MapPost("/internal/diagnostics/ping", HandlePingAsync)
+            .WithGroupName("internal")
+            .WithTags("Internal (diagnostics)");
+
         return endpoints;
     }
 

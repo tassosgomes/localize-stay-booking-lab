@@ -5,9 +5,9 @@
   "original_base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
   "base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
   "target_ref": null,
-  "last_checkpoint": "cbb0242d3d3de54a7ecc05cfb03101b909d75924",
+  "last_checkpoint": "7cb832c",
   "phase": "validating",
-  "active_task": "2.0",
+  "active_task": "3.0",
   "attempt": 1,
   "max_attempts": 3,
   "full_attempt": 0,
@@ -20,11 +20,11 @@
   "delivery": "branch",
   "validated_commit": null,
   "validated_tree": null,
-  "last_result": "VALIDATION APPROVED 2.0 (validator focused, ses_f69138066ffeB9MgSxRX0LglCU); review em 2_task_review.md; 0 bloqueantes",
+  "last_result": "VALIDATION APPROVED 3.0 (validator focused, ses_f68fe3713ffeFisu4kfN6nach7); review em 3_task_review.md; 0 bloqueantes; dredd nao bloqueante",
   "pending_delegation": {
     "role": "integrator",
     "mode": "checkpoint-task",
-    "task": "2.0",
+    "task": "3.0",
     "attempt": 1
   },
   "history": [
@@ -39,6 +39,10 @@
     {
       "event": "task-1.0-done",
       "detail": "checkpoint cbb0242 apos focused approved"
+    },
+    {
+      "event": "task-2.0-done",
+      "detail": "checkpoint 7cb832c apos focused approved"
     }
   ]
 }

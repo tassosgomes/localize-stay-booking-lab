@@ -5,6 +5,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../../3-Domain/LocalizeStay.Booking.Domain/LocalizeStay.Booking.Domain.csproj" />
   </ItemGroup>
 
