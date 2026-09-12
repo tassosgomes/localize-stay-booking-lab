@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../2-Application/LocalizeStay.Booking.Application/LocalizeStay.Booking.Application.csproj" />
     <ProjectReference Include="../../3-Domain/LocalizeStay.Booking.Domain/LocalizeStay.Booking.Domain.csproj" />
   </ItemGroup>
 

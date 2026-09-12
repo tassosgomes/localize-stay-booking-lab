@@ -12,18 +12,21 @@ public sealed class HealthCheckTests(CustomWebApplicationFactory factory)
     private readonly CustomWebApplicationFactory _factory = factory;
 
     [Fact]
-    public async Task Migration_applies_bootstrap_check_table_in_booking_schema()
+    public async Task Migration_creates_reservation_tables_and_removes_bootstrap_sentinel()
     {
         // Arrange
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
 
         // Act
-        var matchingTables = await dbContext.Database.SqlQueryRaw<long>(
+        var reservationTables = await dbContext.Database.SqlQueryRaw<long>(
+            "SELECT COUNT(*) AS \"Value\" FROM information_schema.tables WHERE table_schema = 'booking' AND table_name IN ('reservations', 'reservation_sagas')").SingleAsync();
+        var sentinelTables = await dbContext.Database.SqlQueryRaw<long>(
             "SELECT COUNT(*) AS \"Value\" FROM information_schema.tables WHERE table_schema = 'booking' AND table_name = '__bootstrap_check'").SingleAsync();
 
         // Assert
-        Assert.Equal(1, matchingTables);
+        Assert.Equal(2, reservationTables);
+        Assert.Equal(0, sentinelTables);
     }
 
     [Fact]

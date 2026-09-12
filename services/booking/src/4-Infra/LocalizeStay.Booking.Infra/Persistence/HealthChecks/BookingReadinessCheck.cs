@@ -18,7 +18,7 @@ public sealed class BookingReadinessCheck(BookingDbContext dbContext) : IHealthC
                 return HealthCheckResult.Unhealthy("Não foi possível conectar ao Postgres do Booking.");
             }
 
-            _ = await _dbContext.BootstrapChecks.AsNoTracking().CountAsync(cancellationToken).ConfigureAwait(false);
+            _ = await _dbContext.Reservations.AsNoTracking().CountAsync(cancellationToken).ConfigureAwait(false);
 
             return HealthCheckResult.Healthy();
         }

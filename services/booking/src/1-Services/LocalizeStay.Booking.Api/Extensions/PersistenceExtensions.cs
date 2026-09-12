@@ -1,3 +1,4 @@
+using LocalizeStay.Booking.Application.Reservations;
 using LocalizeStay.Booking.Infra.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -20,6 +21,8 @@ public static class PersistenceExtensions
         services.AddDbContext<BookingDbContext>(options =>
             options.UseNpgsql(connectionString, npgsql =>
                 npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "booking")));
+
+        services.AddScoped<IReservationRepository, ReservationRepository>();
 
         return services;
     }

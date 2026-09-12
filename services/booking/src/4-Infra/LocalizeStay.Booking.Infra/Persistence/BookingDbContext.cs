@@ -1,10 +1,13 @@
+using LocalizeStay.Booking.Domain.Reservations;
 using Microsoft.EntityFrameworkCore;
 
 namespace LocalizeStay.Booking.Infra.Persistence;
 
 public sealed class BookingDbContext(DbContextOptions<BookingDbContext> options) : DbContext(options)
 {
-    internal DbSet<BootstrapCheck> BootstrapChecks => Set<BootstrapCheck>();
+    public DbSet<Reservation> Reservations => Set<Reservation>();
+
+    public DbSet<ReservationSaga> ReservationSagas => Set<ReservationSaga>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

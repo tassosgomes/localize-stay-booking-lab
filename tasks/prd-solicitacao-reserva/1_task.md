@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 slice_type: vertical
 verification_type: behavioral
 parallelizable: true
@@ -14,7 +14,7 @@ blocked_by: []
 <dependencies>database</dependencies>
 <unblocks>"3.0"</unblocks>
 <feedback_checkpoint>`dotnet test --filter "FullyQualifiedName~LocalizeStay.Booking.UnitTests.Reservations.ReservationTests"` verde (todas as combinações de `AvailabilityFacts`); `dotnet test --filter "FullyQualifiedName~LocalizeStay.Booking.IntegrationTests.Reservations.ReservationPersistenceTests"` verde (cria via `Reservation.Create` e lê de volta `booking.reservations`/`booking.reservation_sagas`)</feedback_checkpoint>
-<gate_command>scripts/ai-flow/gate.sh --filter="FullyQualifiedName~LocalizeStay.Booking.Reservations"</gate_command>
+<gate_command>scripts/ai-flow/gate.sh --filter="FullyQualifiedName~LocalizeStay.Booking.UnitTests.Reservations.ReservationTests" --filter="FullyQualifiedName~LocalizeStay.Booking.IntegrationTests.Reservations.ReservationPersistenceTests"</gate_command>
 <gate_test_selector>Classes `ReservationTests` (`LocalizeStay.Booking.UnitTests`) e `ReservationPersistenceTests` (`LocalizeStay.Booking.IntegrationTests`)</gate_test_selector>
 <gate_expected_result>Todos os testes de ambas as classes passam (verde); 0 falhas; a migration `AddReservationAndSaga` substitui `__bootstrap_check` e a leitura via `BookingDbContext` confirma uma linha em `booking.reservations` com `status='solicitada'` e uma em `booking.reservation_sagas` com `state='PaymentPending'`</gate_expected_result>
 <static_evidence>N/A — behavioral</static_evidence>

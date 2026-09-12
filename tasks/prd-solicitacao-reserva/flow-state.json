@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "branch": "feature/prd-solicitacao-reserva",
+  "worktree": "/home/tsgomes/github-tassosgomes/localize-stay-booking-lab-prd-solicitacao-reserva",
+  "original_base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
+  "base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
+  "target_ref": null,
+  "last_checkpoint": null,
+  "phase": "validating",
+  "active_task": "1.0",
+  "attempt": 1,
+  "max_attempts": 3,
+  "full_attempt": 0,
+  "transport_retries": 0,
+  "specs": [
+    "techspec.md",
+    "frontend-techspec.md",
+    "api-contract.yaml"
+  ],
+  "delivery": "branch",
+  "validated_commit": null,
+  "validated_tree": null,
+  "last_result": "VALIDATION APPROVED (validator focused, ses_f692457edffeK2zCiF56Fu37Yw); review em 1_task_review.md; gate reexecutado exit 0",
+  "pending_delegation": {
+    "role": "integrator",
+    "mode": "checkpoint-task",
+    "task": "1.0",
+    "attempt": 1
+  },
+  "history": [
+    {
+      "event": "init",
+      "detail": "Plano aprovado (backend+frontend), prerequisito fundacao-fase0 merged em main; gate OK; nova worktree autorizada pelo usuario"
+    },
+    {
+      "event": "task-1.0-implement-ok",
+      "detail": "attempt 1 gate verde; correcao metadata gate_command em 1_task.md"
+    }
+  ]
+}
