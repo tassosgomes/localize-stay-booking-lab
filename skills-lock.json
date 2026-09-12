@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "design-patterns": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/design-patterns/SKILL.md",
+      "computedHash": "f993e134df29aef38a78c1321b1475046e15f76af0b767f0627562fd566a1a53"
+    },
     "dotnet-architecture": {
       "source": "tassosgomes/my-skills",
       "sourceType": "github",
@@ -55,6 +61,24 @@
       "skillPath": "skills/dotnet-testing/SKILL.md",
       "computedHash": "a772862c4495cf008598d9b9b9365b114bacdcab88b9c3cd8ad003105dd52631"
     },
+    "frontend-design": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "063a0e6448123cd359ad0044cc46b0e490cc7964d45ef4bb9fd842bd2ffbca67"
+    },
+    "git-commit": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/git-commit/SKILL.md",
+      "computedHash": "2bf58b9b5823951de94c29083892d02b41840a82a4cf5b91c0a50c59f94e4505"
+    },
+    "pdf": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/pdf/SKILL.md",
+      "computedHash": "cfbc539377088ca7e44a813b30c306327385bbd973cd7a721e1743f60837dd62"
+    },
     "react-architecture": {
       "source": "tassosgomes/my-skills",
       "sourceType": "github",
@@ -96,6 +120,18 @@
       "sourceType": "github",
       "skillPath": "skills/react-testing/SKILL.md",
       "computedHash": "b39d29f89e8d14d5a4ad1e6a34a28cdc6f74a6ab06bf597ba52b5eafaf6896d0"
+    },
+    "restful-api": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/restful-api/SKILL.md",
+      "computedHash": "24ccbced3093d75a673138d9f0b48015ab0cc02bd49b8543ad8d50df1ff97f32"
+    },
+    "test-guide": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/test-guide/SKILL.md",
+      "computedHash": "52147ed899d7bc670f89b9f51591010b8d29d995c1c9f48d9c763ea4cc77802e"
     },
     "tsg-flow-architecture-baseline": {
       "source": "tassosgomes/my-skills",
