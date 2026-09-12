@@ -1,4 +1,6 @@
+using LocalizeStay.Catalog.Application.Abstractions.Persistence;
 using LocalizeStay.Catalog.Infra.Persistence;
+using LocalizeStay.Catalog.Infra.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +22,9 @@ public static class PersistenceExtensions
         services.AddDbContext<CatalogDbContext>(options =>
             options.UseNpgsql(connectionString, npgsql =>
                 npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "catalog")));
+
+        services.AddScoped<IPropertyRepository, PropertyRepository>();
+        services.AddScoped<IUnitOfWork, CatalogUnitOfWork>();
 
         return services;
     }

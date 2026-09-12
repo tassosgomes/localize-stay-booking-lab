@@ -1,3 +1,5 @@
+using LocalizeStay.Catalog.Api.Contracts.Properties;
+using LocalizeStay.Catalog.Api.ErrorHandling;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi;
@@ -12,6 +14,14 @@ public static class SwaggerExtensions
         services.AddSwaggerGen(options =>
         {
             options.SwaggerDoc("v1", new OpenApiInfo { Title = "LocalizeStay Catalog API", Version = "v1" });
+            options.CustomOperationIds(description => description.ActionDescriptor.AttributeRouteInfo?.Name);
+            options.CustomSchemaIds(type => type.Name switch
+            {
+                nameof(PropertyResponse) => "Property",
+                nameof(CatalogProblemDetails) => "ProblemDetails",
+                nameof(CatalogProblemDetailItem) => "ProblemDetailItem",
+                _ => type.Name
+            });
         });
 
         return services;

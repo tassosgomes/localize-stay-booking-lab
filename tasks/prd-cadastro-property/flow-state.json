@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "branch": "feature/prd-cadastro-property",
+  "original_base_ref": "5d0f9eff8548db9d8846782c3133743790014825",
+  "base_ref": "5d0f9eff8548db9d8846782c3133743790014825",
+  "target_ref": null,
+  "last_checkpoint": null,
+  "phase": "checkpoint",
+  "active_task": "1.0",
+  "attempt": 1,
+  "max_attempts": 3,
+  "full_attempt": 0,
+  "transport_retries": 0,
+  "specs": ["techspec.md", "frontend-techspec.md", "api-contract.yaml"],
+  "delivery": "branch",
+  "validated_commit": null,
+  "validated_tree": null,
+  "worktree": "/home/tsgomes/github-tassosgomes/localize-stay-booking-lab-prd-cadastro-property",
+  "pending_delegation": {
+    "role": "integrator",
+    "mode": "checkpoint-task",
+    "task": "1.0",
+    "attempt": "1/3"
+  },
+  "last_result": {
+    "outcome": "approved",
+    "mode": "focused",
+    "task": "1.0",
+    "attempt": 1,
+    "report": "tasks/prd-cadastro-property/1_task_review.md",
+    "blockers": 0,
+    "recommendations": 3
+  },
+  "history": [
+    {
+      "event": "high-plan-review-1.0",
+      "result": "APROVADO"
+    },
+    {
+      "event": "prepare-prd-branch",
+      "result": "BRANCH READY branch=feature/prd-cadastro-property base_ref=5d0f9eff8548db9d8846782c3133743790014825"
+    },
+    {
+      "event": "implement-1.0-attempt1",
+      "result": "IMPLEMENTATION COMPLETE: gate FeatureSlice=PropertyCreate=40 APROVADO"
+    },
+    {
+      "event": "validate-1.0-focused",
+      "result": "VALIDACAO APROVADA focused (3 recs nao bloqueantes): OpenAPI 400/500 application/json e Location omitido; JSON errors podem vazar CLR type names; AddProperties em pasta de migrations distinta"
+    },
+    {
+      "event": "delegate-checkpoint-1.0",
+      "result": "pending: integrator checkpoint-task 1.0"
+    }
+  ]
+}
