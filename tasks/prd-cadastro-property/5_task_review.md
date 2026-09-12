@@ -37,3 +37,45 @@ Nenhum.
 ## Veredito
 
 VALIDAÇÃO APROVADA (3 recomendações)
+
+---
+
+# Task 5.0 — revalidação (após reprovação full)
+
+- **Modo:** revalidation
+- **Relatórios anteriores:** focused aprovado neste arquivo (3 recs); full `prd_review.md` reprovado (1 bloqueante: `--all-tests` coletava `e2e/PropertyUpdate.spec.ts`)
+- **Diff revisado:** desde checkpoint de produto `6c7088b81d78aec4b66aee3208b592138d8c8df3`; commit `ab9ab1c` só reabre status da fatia; correção em working tree não commitada
+- **HEAD durante a revisão:** `ab9ab1cfc397106a97c1c5663c3054855b8ed567` (`feature/prd-cadastro-property`) — inalterado
+- **Árvore commitada:** `5214bdb9635009e5b3d0a3b9822a1230382b86cf` — inalterada
+- **Código de produto na revisão:** `scripts/ai-flow/gate.sh` dirty (chdir do Vitest em `--all-tests`); `5_task.md`/`flow-state.json` só estado operacional; `prd_review.md` untracked
+- **Independência:** worker fresco; não reutilizou aprovação do implementer
+
+## Gate
+
+```bash
+scripts/ai-flow/gate.sh --filter="PropertyUpdate"
+scripts/ai-flow/gate.sh --base=08daf5e32cca43d0713600d0c495afeaebf211de --all-tests
+```
+
+- **Filtro:** exit 0 — `GATE: APROVADO` (~188s). `PropertyUpdate=14 rtl=12 e2e=2`
+- **Agregado:** exit 0 — `GATE: APROVADO` (~158s). `testes: ok (suite frontend completa: frontend/localize-stay-frontend)`; build .NET/tsc ok
+- **Bloqueante full anterior:** ausente. `--all-tests` agora usa `env --chdir="$fdir" ./node_modules/.bin/vitest run` (`gate.sh` ~L300–302), carrega `vite.config.ts` (`include` só `src/**/*.test.ts(x)`, `exclude` `**/e2e/**`) e não coleta o spec Playwright
+- **E2E leftover:** `localize-stay-e2e-pg` (porta 54332) sobreviveu ao filtro; removido ao final desta revisão. 5111/5175 livres
+
+## Diff novo (regressão)
+
+Única mudança de produto: alinhar a invocação Vitest de `--all-tests` à do filtro focused. Sem alteração de UI, adapter, backend ou specs E2E. Nenhuma regressão nova no diff.
+
+Observações focused (abort do PATCH, Postgres E2E vivo, `alertdialog` sem trap) permanecem; nenhuma virou bloqueante.
+
+## Bloqueantes
+
+Nenhum.
+
+## Recomendações
+
+Sem novas. As 3 da focused seguem não bloqueantes.
+
+## Veredito (revalidação)
+
+VALIDAÇÃO APROVADA (3 recomendações pré-existentes)

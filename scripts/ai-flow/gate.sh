@@ -298,7 +298,8 @@ if ((SKIP_TESTS == 0 && STATIC == 0)) && ((ALL_TESTS == 1)); then
     if ((NEED_NODE == 1)); then
       for fdir in "${FRONTEND_DIRS[@]}"; do
         if [[ -x "$fdir/node_modules/.bin/vitest" ]]; then
-          CMD=(npm --prefix "$fdir" exec --no -- vitest run --reporter=basic --no-color)
+          # chdir carrega vite.config.ts; npm --prefix na raiz coleta e2e/*.spec.ts.
+          CMD=(env --chdir="$fdir" ./node_modules/.bin/vitest run --reporter=basic --no-color)
           RC=0; run "${CMD[@]}" || RC=$?
           ((RC != 0)) && fail "testes" "vitest run ($fdir)" "$OUT"
           TEST_STATUS="ok (suite frontend completa: $fdir)"

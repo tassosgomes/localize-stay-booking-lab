@@ -2,14 +2,14 @@
   "schema_version": 1,
   "branch": "feature/prd-cadastro-property",
   "original_base_ref": "5d0f9eff8548db9d8846782c3133743790014825",
-  "base_ref": "5d0f9eff8548db9d8846782c3133743790014825",
-  "target_ref": null,
-  "last_checkpoint": "8785df484fcd2c42d0948d08abbc006f2ff40df8",
+  "base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
+  "target_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
+  "last_checkpoint": "6c7088b81d78aec4b66aee3208b592138d8c8df3",
   "phase": "checkpoint",
   "active_task": "5.0",
-  "attempt": 1,
+  "attempt": 2,
   "max_attempts": 3,
-  "full_attempt": 0,
+  "full_attempt": 1,
   "transport_retries": 2,
   "specs": ["techspec.md", "frontend-techspec.md", "api-contract.yaml"],
   "delivery": "pr",
@@ -20,44 +20,36 @@
     "role": "integrator",
     "mode": "checkpoint-task",
     "task": "5.0",
-    "attempt": "1/3"
+    "attempt": "2/3"
   },
   "last_result": {
     "outcome": "approved",
-    "mode": "focused",
+    "mode": "revalidation",
     "task": "5.0",
-    "attempt": 1,
+    "attempt": 2,
     "report": "tasks/prd-cadastro-property/5_task_review.md",
     "blockers": 0,
     "recommendations": 3
   },
   "history": [
     {
-      "event": "cycle-1.0",
-      "result": "CHECKPOINT OK 2a9d47f"
+      "event": "full-validation-1",
+      "result": "FULL VALIDATION REPROVADA task 5.0"
     },
     {
-      "event": "cycle-2.0",
-      "result": "CHECKPOINT OK c4b4061"
+      "event": "reopen-5.0",
+      "result": "TASK REOPENED ab9ab1c"
     },
     {
-      "event": "cycle-3.0",
-      "result": "CHECKPOINT OK cb37c52"
+      "event": "fix-5.0-attempt2",
+      "result": "IMPLEMENTATION COMPLETE gate.sh chdir"
     },
     {
-      "event": "cycle-4.0",
-      "result": "CHECKPOINT OK 8785df4"
+      "event": "revalidate-5.0",
+      "result": "VALIDACAO APROVADA revalidation (3 recs preexistentes)"
     },
     {
-      "event": "implement-5.0-attempt1",
-      "result": "IMPLEMENTATION COMPLETE: gate PropertyUpdate RTL=12 Playwright=2"
-    },
-    {
-      "event": "validate-5.0-focused",
-      "result": "VALIDACAO APROVADA focused (3 recs nao bloqueantes)"
-    },
-    {
-      "event": "delegate-checkpoint-5.0",
+      "event": "delegate-checkpoint-5.0-fix",
       "result": "pending: integrator checkpoint-task 5.0"
     }
   ]
