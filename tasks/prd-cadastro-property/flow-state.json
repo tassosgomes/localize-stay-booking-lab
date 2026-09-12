@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "branch": "feature/prd-cadastro-property",
+  "original_base_ref": "5d0f9eff8548db9d8846782c3133743790014825",
+  "base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
+  "target_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
+  "last_checkpoint": "0c993f505d505f47b7c16341d6eed4cf805f378d",
+  "phase": "complete",
+  "active_task": null,
+  "attempt": 2,
+  "max_attempts": 3,
+  "full_attempt": 2,
+  "transport_retries": 3,
+  "specs": ["techspec.md", "frontend-techspec.md", "api-contract.yaml"],
+  "delivery": "pr",
+  "validated_commit": "0c993f505d505f47b7c16341d6eed4cf805f378d",
+  "validated_tree": "15c0149a42b0799528e40005748f140d4598f195",
+  "worktree": "/home/tsgomes/github-tassosgomes/localize-stay-booking-lab-prd-cadastro-property",
+  "pending_delegation": {
+    "role": "integrator",
+    "mode": "complete-prd",
+    "task": null,
+    "attempt": "2/3"
+  },
+  "last_result": {
+    "outcome": "approved",
+    "mode": "full",
+    "report": "tasks/prd-cadastro-property/prd_review.md",
+    "validated_commit": "0c993f505d505f47b7c16341d6eed4cf805f378d",
+    "validated_tree": "15c0149a42b0799528e40005748f140d4598f195",
+    "blockers": 0,
+    "recommendations": 4
+  },
+  "history": [
+    {
+      "event": "full-validation-1",
+      "result": "FULL VALIDATION REPROVADA task 5.0"
+    },
+    {
+      "event": "cycle-5.0-fix",
+      "result": "CHECKPOINT OK 0c993f5"
+    },
+    {
+      "event": "full-validation-2",
+      "result": "primeira execucao: infra Ryuk; retry: FULL VALIDATION APROVADA (4 recs)"
+    },
+    {
+      "event": "delegate-complete-prd",
+      "result": "pending: integrator complete-prd delivery=pr"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 slice_type: vertical
 verification_type: behavioral
 parallelizable: false

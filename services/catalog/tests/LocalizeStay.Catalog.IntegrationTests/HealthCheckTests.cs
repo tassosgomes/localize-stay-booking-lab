@@ -12,7 +12,7 @@ public sealed class HealthCheckTests(CustomWebApplicationFactory factory)
     private readonly CustomWebApplicationFactory _factory = factory;
 
     [Fact]
-    public async Task Migration_applies_bootstrap_check_table_in_catalog_schema()
+    public async Task Migration_applies_properties_table_in_catalog_schema()
     {
         // Arrange
         using var scope = _factory.Services.CreateScope();
@@ -20,7 +20,7 @@ public sealed class HealthCheckTests(CustomWebApplicationFactory factory)
 
         // Act
         var matchingTables = await dbContext.Database.SqlQueryRaw<long>(
-            "SELECT COUNT(*) AS \"Value\" FROM information_schema.tables WHERE table_schema = 'catalog' AND table_name = '__bootstrap_check'").SingleAsync();
+            "SELECT COUNT(*) AS \"Value\" FROM information_schema.tables WHERE table_schema = 'catalog' AND table_name = 'properties'").SingleAsync();
 
         // Assert
         Assert.Equal(1, matchingTables);

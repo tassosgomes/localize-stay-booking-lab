@@ -148,10 +148,40 @@ is_frontend_only_filter() { # filtros do frontend (task 7.0: ServiceStatus.test)
   [[ "$f" == *".test"* || "$f" == *"ServiceStatus"* || "$f" == *"vitest"* ]]
 }
 
+frontend_unit_files_for() { # $1 filter, $2 frontend dir
+  local filter="$1" fdir="$2"
+  find "$fdir" \( -path '*/node_modules/*' -o -path '*/dist/*' -o -path '*/e2e/*' \) -prune -o \
+    -type f \( -name "*${filter}*.test.ts" -o -name "*${filter}*.test.tsx" \) -print 2>/dev/null
+}
+
+frontend_e2e_files_for() { # $1 filter, $2 frontend dir
+  local filter="$1" fdir="$2"
+  [[ -d "$fdir/e2e" ]] || return 0
+  find "$fdir/e2e" -type f \( -name "*${filter}*.spec.ts" -o -name "*${filter}*.spec.tsx" \) -print 2>/dev/null
+}
+
+filter_has_frontend_suite() {
+  local f="$1" fdir files
+  is_frontend_only_filter "$f" && return 0
+  for fdir in "${FRONTEND_DIRS[@]:-}"; do
+    files="$(frontend_unit_files_for "$f" "$fdir")"
+    [[ -n "${files//[[:space:]]/}" ]] && return 0
+    files="$(frontend_e2e_files_for "$f" "$fdir")"
+    [[ -n "${files//[[:space:]]/}" ]] && return 0
+  done
+  return 1
+}
+
+playwright_passed_count() {
+  printf '%s\n' "$1" | grep -oE '[0-9]+ passed' | tail -n 1 | grep -oE '^[0-9]+' | awk '{print $1+0}'
+}
+
 # Necessidade por stack: arquivos da stack no diff, suite completa, static/skip
 # com projetos presentes, ou filtro que a stack pode atender.
 ALL_FRONTEND_ONLY=1
-for f in "${FILTERS[@]:-}"; do is_frontend_only_filter "$f" || ALL_FRONTEND_ONLY=0; done
+for f in "${FILTERS[@]:-}"; do
+  is_frontend_only_filter "$f" || filter_has_frontend_suite "$f" || ALL_FRONTEND_ONLY=0
+done
 NEED_DOTNET=0; NEED_NODE=0
 if ((N_DOTNET > 0 || ALL_TESTS == 1 || STATIC == 1 || SKIP_TESTS == 1)); then NEED_DOTNET=1; fi
 if ((N_NODE > 0 || ALL_TESTS == 1 || STATIC == 1 || SKIP_TESTS == 1)); then NEED_NODE=1; fi
@@ -268,7 +298,8 @@ if ((SKIP_TESTS == 0 && STATIC == 0)) && ((ALL_TESTS == 1)); then
     if ((NEED_NODE == 1)); then
       for fdir in "${FRONTEND_DIRS[@]}"; do
         if [[ -x "$fdir/node_modules/.bin/vitest" ]]; then
-          CMD=(npm --prefix "$fdir" exec --no -- vitest run --reporter=basic --no-color)
+          # chdir carrega vite.config.ts; npm --prefix na raiz coleta e2e/*.spec.ts.
+          CMD=(env --chdir="$fdir" ./node_modules/.bin/vitest run --reporter=basic --no-color)
           RC=0; run "${CMD[@]}" || RC=$?
           ((RC != 0)) && fail "testes" "vitest run ($fdir)" "$OUT"
           TEST_STATUS="ok (suite frontend completa: $fdir)"
@@ -280,37 +311,86 @@ elif ((SKIP_TESTS == 0 && STATIC == 0)) && ((${#FILTERS[@]} > 0)); then
   RESULTS=()
   for f in "${FILTERS[@]}"; do
     SUM=0
+    UNIT_SUM=0
+    E2E_SUM=0
+    HAS_UNIT=0
+    HAS_E2E=0
     # Nunca passe flags do tipo --passWithNoTests: suite ausente deve reprovar.
-    if ((${#SOLUTIONS[@]} > 0)) && ! is_frontend_only_filter "$f"; then
+    if ((${#FRONTEND_DIRS[@]} > 0)); then
+      for fdir in "${FRONTEND_DIRS[@]}"; do
+        mapfile -t UNIT_FILES < <(frontend_unit_files_for "$f" "$fdir")
+        mapfile -t E2E_FILES < <(frontend_e2e_files_for "$f" "$fdir")
+        ((${#UNIT_FILES[@]} > 0)) && HAS_UNIT=1
+        ((${#E2E_FILES[@]} > 0)) && HAS_E2E=1
+        if ((${#UNIT_FILES[@]} > 0)) && [[ -x "$fdir/node_modules/.bin/vitest" ]]; then
+          CMD=(env --chdir="$fdir" ./node_modules/.bin/vitest run "$f" --reporter=basic --no-color --passWithNoTests=false)
+          RC=0; run "${CMD[@]}" || RC=$?
+          if ((RC != 0)); then
+            printf '%s\n' "$OUT" | grep -qiE 'No test files found|No test matches|No tests found' || \
+              fail "testes" "vitest run \"$f\" ($fdir)" "$OUT"
+          else
+            PART="$(printf '%s\n' "$OUT" | grep -oE 'Tests[[:space:]]+[0-9]+ passed' | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')"
+            UNIT_SUM=$((UNIT_SUM + PART))
+          fi
+        fi
+        if ((${#E2E_FILES[@]} > 0)); then
+          if [[ ! -x "$fdir/node_modules/.bin/playwright" ]]; then
+            echo "GATE: ERRO"
+            echo "Playwright indisponivel em $fdir para o filtro \"$f\""
+            exit 2
+          fi
+          if ! "$fdir/node_modules/.bin/playwright" install chromium >/dev/null 2>&1; then
+            echo "GATE: ERRO"
+            echo "falha ao instalar o browser Chromium do Playwright"
+            exit 2
+          fi
+          E2E_REL=()
+          for e2e_file in "${E2E_FILES[@]}"; do
+            E2E_REL+=("${e2e_file#"$fdir"/}")
+          done
+          CMD=(env --chdir="$fdir" ./node_modules/.bin/playwright test --reporter=line "${E2E_REL[@]}")
+          RC=0; run "${CMD[@]}" || RC=$?
+          if printf '%s\n' "$OUT" | grep -q 'E2E_INFRA_UNAVAILABLE'; then
+            echo "GATE: ERRO"
+            echo "infra E2E indisponivel (Catalog/Postgres) para o filtro \"$f\""
+            printf '%s\n' "$OUT" | tail -n "$MAX_OUTPUT_LINES"
+            exit 2
+          fi
+          if ((RC != 0)); then
+            fail "testes" "playwright test ${E2E_FILES[*]} ($fdir)" "$OUT"
+          fi
+          PART="$(playwright_passed_count "$OUT")"
+          E2E_SUM=$((E2E_SUM + PART))
+        fi
+      done
+    fi
+    if ((HAS_UNIT == 1 && UNIT_SUM == 0)); then
+      fail "testes" "filtro \"$f\" (RTL/MSW)" \
+        "Filtro nao selecionou PropertyUpdate.test.tsx / testes RTL exigidos.
+$OUT"
+    fi
+    if ((HAS_E2E == 1 && E2E_SUM == 0)); then
+      fail "testes" "filtro \"$f\" (Playwright)" \
+        "Filtro nao selecionou e2e/PropertyUpdate.spec.ts / testes Playwright exigidos.
+$OUT"
+    fi
+    SUM=$((UNIT_SUM + E2E_SUM))
+    if [[ "$SUM" == "0" ]] && ((${#SOLUTIONS[@]} > 0)) && ! filter_has_frontend_suite "$f"; then
       command -v dotnet >/dev/null 2>&1 || { echo "GATE: ERRO"; echo "dotnet indisponivel"; exit 2; }
       for sln in "${SOLUTIONS[@]}"; do
         CMD=(dotnet test "$sln" --nologo --filter "$f")
         RC=0; run "${CMD[@]}" || RC=$?
         ((RC != 0)) && fail "testes" "dotnet test $sln --nologo --filter \"$f\"" "$(docker_hint "$OUT")"
-        # dotnet test sai 0 mesmo sem match: some Passed:N do output.
         PART="$(printf '%s\n' "$OUT" | grep -oE 'Passed:[[:space:]]+[0-9]+' | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')"
         SUM=$((SUM + PART))
       done
     fi
-    if [[ "$SUM" == "0" ]] && ((${#FRONTEND_DIRS[@]} > 0)) && { is_frontend_only_filter "$f" || ((${#SOLUTIONS[@]} == 0)); }; then
-      for fdir in "${FRONTEND_DIRS[@]}"; do
-        [[ -x "$fdir/node_modules/.bin/vitest" ]] || continue
-        CMD=(npm --prefix "$fdir" exec --no -- vitest run "$f" --reporter=basic --no-color --passWithNoTests=false)
-        RC=0; run "${CMD[@]}" || RC=$?
-        if ((RC != 0)); then
-          printf '%s\n' "$OUT" | grep -qiE 'No test files found|No test matches|No tests found' && continue
-          fail "testes" "vitest run \"$f\" ($fdir)" "$OUT"
-        fi
-        PART="$(printf '%s\n' "$OUT" | grep -oE 'Tests[[:space:]]+[0-9]+ passed' | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')"
-        SUM=$((SUM + PART))
-      done
-    fi
     if [[ "$SUM" == "0" ]]; then
-      fail "testes" "filtro \"$f\" (dotnet/vitest conforme stacks presentes)" \
+      fail "testes" "filtro \"$f\" (dotnet/vitest/playwright conforme stacks presentes)" \
         "Filtro nao selecionou nenhum teste. A suite exigida pela task provavelmente nao existe.
 $OUT"
     fi
-    RESULTS+=("$f=${SUM}")
+    RESULTS+=("$f=${SUM} rtl=${UNIT_SUM} e2e=${E2E_SUM}")
   done
   TEST_STATUS="ok (${RESULTS[*]})"
 fi

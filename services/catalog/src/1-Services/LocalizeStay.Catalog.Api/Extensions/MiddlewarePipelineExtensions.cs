@@ -11,9 +11,11 @@ public static class MiddlewarePipelineExtensions
 
         // Sem UseHttpsRedirection nesta fase: o laboratório local não tem TLS;
         // a decisão volta no primeiro PRD que exigir transporte seguro.
+        app.UseErrorHandling();
         app.UseSwaggerConfiguration();
         app.UseCorsConfiguration();
         app.MapHealthCheckConfiguration();
+        app.MapControllers();
 
         return app;
     }

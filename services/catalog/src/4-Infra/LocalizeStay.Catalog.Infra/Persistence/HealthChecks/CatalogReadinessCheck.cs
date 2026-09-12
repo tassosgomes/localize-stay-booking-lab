@@ -18,7 +18,7 @@ public sealed class CatalogReadinessCheck(CatalogDbContext dbContext) : IHealthC
                 return HealthCheckResult.Unhealthy("Não foi possível conectar ao Postgres do Catalog.");
             }
 
-            _ = await _dbContext.BootstrapChecks.AsNoTracking().CountAsync(cancellationToken).ConfigureAwait(false);
+            _ = await _dbContext.Properties.AsNoTracking().CountAsync(cancellationToken).ConfigureAwait(false);
 
             return HealthCheckResult.Healthy();
         }

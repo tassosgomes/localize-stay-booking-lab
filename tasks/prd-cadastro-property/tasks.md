@@ -7,7 +7,7 @@
 > aprovado em 2026-09-12; [`api-contract.md`](./api-contract.md) contém o racional aprovado.
 > **ADRs pertinentes:** [ADR-001 — backend .NET](../../docs/adr/adr-001-backend-stack-dotnet.md) e
 > [ADR-003 — frontend React sem gateway](../../docs/adr/adr-003-frontend-teste-react.md).
-> **Status do plano:** Em revisão — completo; a task 1.0 é `high` e requer revisão explícita antes da implementação.
+> **Status do plano:** Confirmado para implementação — revisão high da task 1.0 aprovada em 2026-09-12.
 > **Regra de entrega:** cada task de comportamento é uma fatia vertical validável isoladamente.
 
 ## Visão Geral
@@ -73,11 +73,11 @@ Não há habilitador backend novo. A Fundação é dependência externa, não co
 
 ## Tarefas
 
-- [ ] 1.0 Cadastrar Property ativa por HTTP
-- [ ] 2.0 Editar dados cadastrais preservando ownership e estado
-- [ ] 3.0 Preparar integração frontend tipada com o contrato Catalog
-- [ ] 4.0 Cadastrar Property pela interface acessível
-- [ ] 5.0 Editar Property na interface e provar a jornada full-stack
+- [x] 1.0 Cadastrar Property ativa por HTTP
+- [x] 2.0 Editar dados cadastrais preservando ownership e estado
+- [x] 3.0 Preparar integração frontend tipada com o contrato Catalog
+- [x] 4.0 Cadastrar Property pela interface acessível
+- [x] 5.0 Editar Property na interface e provar a jornada full-stack
 
 ## Rastreabilidade US → Tasks
 
