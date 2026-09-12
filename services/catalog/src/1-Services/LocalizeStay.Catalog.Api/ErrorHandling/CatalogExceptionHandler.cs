@@ -1,5 +1,7 @@
 using System.Text.Json;
 using FluentValidation;
+using LocalizeStay.Catalog.Application.Properties;
+using LocalizeStay.Catalog.Domain.Properties;
 using Microsoft.AspNetCore.Diagnostics;
 
 namespace LocalizeStay.Catalog.Api.ErrorHandling;
@@ -42,6 +44,8 @@ public sealed class CatalogExceptionHandler(ILogger<CatalogExceptionHandler> log
                         Message = "JSON inválido."
                     }
                 ]),
+            HostOwnershipForbiddenException => CatalogProblemDetailsFactory.HostOwnershipForbidden(instance, traceId),
+            PropertyNotFoundException => CatalogProblemDetailsFactory.PropertyNotFound(instance, traceId),
             _ => CatalogProblemDetailsFactory.Internal(instance, traceId)
         };
 
@@ -53,10 +57,20 @@ public sealed class CatalogExceptionHandler(ILogger<CatalogExceptionHandler> log
                 traceId,
                 instance);
         }
+        else if (exception is HostOwnershipForbiddenException ownershipException)
+        {
+            _logger.LogWarning(
+                "HOST_OWNERSHIP_FORBIDDEN propertyId={PropertyId} hostReferenceId={HostReferenceId} traceId={TraceId} instance={Instance}",
+                ownershipException.PropertyId,
+                ownershipException.HostReferenceId,
+                traceId,
+                instance);
+        }
         else
         {
             _logger.LogInformation(
-                "VALIDATION_ERROR traceId={TraceId} instance={Instance} code={Code}",
+                "{Code} traceId={TraceId} instance={Instance} code={Code}",
+                problem.Code,
                 traceId,
                 instance,
                 problem.Code);

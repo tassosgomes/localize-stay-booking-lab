@@ -1,5 +1,6 @@
 using LocalizeStay.Catalog.Application.Abstractions.Persistence;
 using LocalizeStay.Catalog.Domain.Properties;
+using Microsoft.EntityFrameworkCore;
 
 namespace LocalizeStay.Catalog.Infra.Persistence.Repositories;
 
@@ -11,4 +12,7 @@ public sealed class PropertyRepository(CatalogDbContext dbContext) : IPropertyRe
     {
         await _dbContext.Properties.AddAsync(property, cancellationToken);
     }
+
+    public Task<Property?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken) =>
+        _dbContext.Properties.FirstOrDefaultAsync(property => property.Id == id, cancellationToken);
 }

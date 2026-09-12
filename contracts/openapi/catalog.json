@@ -29,11 +29,20 @@
                                 "$ref": "#/components/schemas/CreatePropertyRequest"
                             }
                         }
-                    }
+                    },
+                    "required": true
                 },
                 "responses": {
                     "201": {
                         "description": "Created",
+                        "headers": {
+                            "Location": {
+                                "description": "Caminho versionado da Property cadastrada.",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -45,7 +54,7 @@
                     "400": {
                         "description": "Bad Request",
                         "content": {
-                            "application/json": {
+                            "application/problem+json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/ProblemDetails"
                                 }
@@ -55,7 +64,97 @@
                     "500": {
                         "description": "Internal Server Error",
                         "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/properties/{propertyId}": {
+            "patch": {
+                "tags": [
+                    "Properties"
+                ],
+                "operationId": "updateProperty",
+                "parameters": [
+                    {
+                        "name": "propertyId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "X-Host-Reference-Id",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdatePropertyRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
                             "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Property"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/problem+json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/ProblemDetails"
                                 }
@@ -69,15 +168,23 @@
     "components": {
         "schemas": {
             "CreatePropertyRequest": {
+                "required": [
+                    "location",
+                    "name"
+                ],
                 "type": "object",
                 "properties": {
                     "name": {
-                        "type": "string",
-                        "nullable": true
+                        "maxLength": 120,
+                        "minLength": 1,
+                        "pattern": ".*\\S.*",
+                        "type": "string"
                     },
                     "location": {
-                        "type": "string",
-                        "nullable": true
+                        "maxLength": 500,
+                        "minLength": 1,
+                        "pattern": ".*\\S.*",
+                        "type": "string"
                     }
                 },
                 "additionalProperties": false
@@ -166,20 +273,42 @@
                         "format": "uuid"
                     },
                     "name": {
-                        "type": "string",
-                        "nullable": true
+                        "maxLength": 120,
+                        "minLength": 1,
+                        "pattern": ".*\\S.*",
+                        "type": "string"
                     },
                     "location": {
-                        "type": "string",
-                        "nullable": true
+                        "maxLength": 500,
+                        "minLength": 1,
+                        "pattern": ".*\\S.*",
+                        "type": "string"
                     },
                     "hostReferenceId": {
                         "type": "string",
                         "format": "uuid"
                     },
                     "status": {
-                        "type": "string",
-                        "nullable": true
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": false
+            },
+            "UpdatePropertyRequest": {
+                "minProperties": 1,
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "maxLength": 120,
+                        "minLength": 1,
+                        "pattern": ".*\\S.*",
+                        "type": "string"
+                    },
+                    "location": {
+                        "maxLength": 500,
+                        "minLength": 1,
+                        "pattern": ".*\\S.*",
+                        "type": "string"
                     }
                 },
                 "additionalProperties": false

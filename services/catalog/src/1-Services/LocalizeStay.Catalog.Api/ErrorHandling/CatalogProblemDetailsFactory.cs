@@ -9,8 +9,12 @@ public static class CatalogProblemDetailsFactory
 {
     public const string ValidationType = "https://localize-stay.example/problems/validation-error";
     public const string InternalType = "https://localize-stay.example/problems/internal-error";
+    public const string HostOwnershipType = "https://localize-stay.example/problems/host-ownership-forbidden";
+    public const string PropertyNotFoundType = "https://localize-stay.example/problems/property-not-found";
     public const string ValidationCode = "VALIDATION_ERROR";
     public const string InternalCode = "INTERNAL_ERROR";
+    public const string HostOwnershipCode = "HOST_OWNERSHIP_FORBIDDEN";
+    public const string PropertyNotFoundCode = "PROPERTY_NOT_FOUND";
 
     private static readonly Regex JsonPropertyName = new(
         "JSON property '([^']+)'",
@@ -41,6 +45,32 @@ public static class CatalogProblemDetailsFactory
             Detail = "Ocorreu um erro inesperado. Tente novamente mais tarde.",
             Instance = instance,
             Code = InternalCode,
+            Details = [],
+            TraceId = traceId
+        };
+
+    public static CatalogProblemDetails HostOwnershipForbidden(string instance, string traceId) =>
+        new()
+        {
+            Type = HostOwnershipType,
+            Title = "Operação não permitida",
+            Status = StatusCodes.Status403Forbidden,
+            Detail = "Somente o Host responsável pode editar esta Property.",
+            Instance = instance,
+            Code = HostOwnershipCode,
+            Details = [],
+            TraceId = traceId
+        };
+
+    public static CatalogProblemDetails PropertyNotFound(string instance, string traceId) =>
+        new()
+        {
+            Type = PropertyNotFoundType,
+            Title = "Property não encontrada",
+            Status = StatusCodes.Status404NotFound,
+            Detail = "Não foi encontrada uma Property com o identificador informado.",
+            Instance = instance,
+            Code = PropertyNotFoundCode,
             Details = [],
             TraceId = traceId
         };
@@ -102,6 +132,7 @@ public static class CatalogProblemDetailsFactory
         return lastSegment switch
         {
             "hostReferenceId" or "HostReferenceId" or "X-Host-Reference-Id" => "X-Host-Reference-Id",
+            "propertyId" or "PropertyId" => "propertyId",
             "Name" => "name",
             "Location" => "location",
             "request" or "Request" or "$" or "" => "body",

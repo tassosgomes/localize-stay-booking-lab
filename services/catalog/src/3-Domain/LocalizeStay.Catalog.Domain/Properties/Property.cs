@@ -36,6 +36,42 @@ public sealed class Property
         };
     }
 
+    public void EnsureOwnedBy(Guid hostReferenceId)
+    {
+        if (HostReferenceId != hostReferenceId)
+        {
+            throw new HostOwnershipForbiddenException(Id, hostReferenceId);
+        }
+    }
+
+    public void UpdateDetails(string? name, bool updateName, string? location, bool updateLocation)
+    {
+        if (!updateName && !updateLocation)
+        {
+            throw new ArgumentException("At least one field must be provided.");
+        }
+
+        if (updateName)
+        {
+            EnsureValidName(name!);
+        }
+
+        if (updateLocation)
+        {
+            EnsureValidLocation(location!);
+        }
+
+        if (updateName)
+        {
+            Name = name!;
+        }
+
+        if (updateLocation)
+        {
+            Location = location!;
+        }
+    }
+
     private static void EnsureValidName(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);

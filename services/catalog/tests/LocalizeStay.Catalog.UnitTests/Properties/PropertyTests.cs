@@ -82,4 +82,110 @@ public sealed class PropertyTests
         property.Name.Should().HaveLength(Property.NameMaxLength);
         property.Location.Should().HaveLength(Property.LocationMaxLength);
     }
+
+    [Fact]
+    [Trait("FeatureSlice", "PropertyUpdate")]
+    public void EnsureOwnedBy_WithMatchingHost_DoesNotThrow()
+    {
+        var property = Property.Create("Pousada Dunas do Sol", "Cumbuco, Caucaia - CE", HostReferenceId);
+
+        var action = () => property.EnsureOwnedBy(HostReferenceId);
+
+        action.Should().NotThrow();
+    }
+
+    [Fact]
+    [Trait("FeatureSlice", "PropertyUpdate")]
+    public void EnsureOwnedBy_WithDivergentHost_ThrowsHostOwnershipForbiddenException()
+    {
+        var property = Property.Create("Pousada Dunas do Sol", "Cumbuco, Caucaia - CE", HostReferenceId);
+        var otherHost = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+
+        var action = () => property.EnsureOwnedBy(otherHost);
+
+        var exception = action.Should().Throw<HostOwnershipForbiddenException>().Which;
+        exception.PropertyId.Should().Be(property.Id);
+        exception.HostReferenceId.Should().Be(otherHost);
+        property.Name.Should().Be("Pousada Dunas do Sol");
+        property.Location.Should().Be("Cumbuco, Caucaia - CE");
+        property.HostReferenceId.Should().Be(HostReferenceId);
+        property.Status.Should().Be(PropertyStatus.Active);
+    }
+
+    [Fact]
+    [Trait("FeatureSlice", "PropertyUpdate")]
+    public void UpdateDetails_WithNameOnly_PreservesLocationIdentityHostAndStatus()
+    {
+        var property = Property.Create("Pousada Dunas do Sol", "Cumbuco, Caucaia - CE", HostReferenceId);
+        var originalId = property.Id;
+
+        property.UpdateDetails("Pousada Dunas do Sol Boutique", true, null, false);
+
+        property.Id.Should().Be(originalId);
+        property.Name.Should().Be("Pousada Dunas do Sol Boutique");
+        property.Location.Should().Be("Cumbuco, Caucaia - CE");
+        property.HostReferenceId.Should().Be(HostReferenceId);
+        property.Status.Should().Be(PropertyStatus.Active);
+    }
+
+    [Fact]
+    [Trait("FeatureSlice", "PropertyUpdate")]
+    public void UpdateDetails_WithLocationOnly_PreservesNameIdentityHostAndStatus()
+    {
+        var property = Property.Create("Pousada Dunas do Sol", "Cumbuco, Caucaia - CE", HostReferenceId);
+
+        property.UpdateDetails(null, false, "Praia de Cumbuco, Caucaia - CE", true);
+
+        property.Name.Should().Be("Pousada Dunas do Sol");
+        property.Location.Should().Be("Praia de Cumbuco, Caucaia - CE");
+        property.HostReferenceId.Should().Be(HostReferenceId);
+        property.Status.Should().Be(PropertyStatus.Active);
+    }
+
+    [Fact]
+    [Trait("FeatureSlice", "PropertyUpdate")]
+    public void UpdateDetails_WithBothFields_UpdatesNameAndLocationAtomically()
+    {
+        var property = Property.Create("Pousada Dunas do Sol", "Cumbuco, Caucaia - CE", HostReferenceId);
+
+        property.UpdateDetails("Pousada Dunas do Sol Boutique", true, "Praia de Cumbuco, Caucaia - CE", true);
+
+        property.Name.Should().Be("Pousada Dunas do Sol Boutique");
+        property.Location.Should().Be("Praia de Cumbuco, Caucaia - CE");
+    }
+
+    [Fact]
+    [Trait("FeatureSlice", "PropertyUpdate")]
+    public void UpdateDetails_WhenSecondFieldIsInvalid_DoesNotChangeEitherField()
+    {
+        var property = Property.Create("Pousada Dunas do Sol", "Cumbuco, Caucaia - CE", HostReferenceId);
+
+        var action = () => property.UpdateDetails(
+            "Pousada Dunas do Sol Boutique",
+            true,
+            new string('b', Property.LocationMaxLength + 1),
+            true);
+
+        action.Should().Throw<ArgumentOutOfRangeException>();
+        property.Name.Should().Be("Pousada Dunas do Sol");
+        property.Location.Should().Be("Cumbuco, Caucaia - CE");
+        property.HostReferenceId.Should().Be(HostReferenceId);
+        property.Status.Should().Be(PropertyStatus.Active);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [Trait("FeatureSlice", "PropertyUpdate")]
+    public void UpdateDetails_WithBlankPresentName_ThrowsAndPreservesState(string? name)
+    {
+        var property = Property.Create("Pousada Dunas do Sol", "Cumbuco, Caucaia - CE", HostReferenceId);
+
+        var action = () => property.UpdateDetails(name, true, null, false);
+
+        action.Should().Throw<ArgumentException>();
+        property.Name.Should().Be("Pousada Dunas do Sol");
+        property.Location.Should().Be("Cumbuco, Caucaia - CE");
+    }
 }

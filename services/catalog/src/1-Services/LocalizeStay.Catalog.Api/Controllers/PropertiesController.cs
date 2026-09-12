@@ -1,4 +1,5 @@
 using LocalizeStay.Catalog.Api.Contracts.Properties;
+using LocalizeStay.Catalog.Api.ErrorHandling;
 using LocalizeStay.Catalog.Application.Properties;
 using LocalizeStay.Catalog.Application.Properties.Models;
 using LocalizeStay.Catalog.Domain.Properties;
@@ -17,8 +18,8 @@ public sealed class PropertiesController(IPropertyService propertyService) : Con
     [Consumes("application/json")]
     [Produces("application/json")]
     [ProducesResponseType(typeof(PropertyResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ErrorHandling.CatalogProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
-    [ProducesResponseType(typeof(ErrorHandling.CatalogProblemDetails), StatusCodes.Status500InternalServerError, "application/problem+json")]
+    [ProducesResponseType(typeof(CatalogProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType(typeof(CatalogProblemDetails), StatusCodes.Status500InternalServerError, "application/problem+json")]
     public async Task<IActionResult> CreateAsync(
         [FromHeader(Name = "X-Host-Reference-Id"), BindRequired] Guid hostReferenceId,
         [FromBody] CreatePropertyRequest request,
@@ -30,6 +31,33 @@ public sealed class PropertiesController(IPropertyService propertyService) : Con
 
         var response = Map(result);
         return Created($"/v1/properties/{response.Id}", response);
+    }
+
+    [HttpPatch("{propertyId}", Name = "updateProperty")]
+    [Consumes("application/json")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(PropertyResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(CatalogProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType(typeof(CatalogProblemDetails), StatusCodes.Status403Forbidden, "application/problem+json")]
+    [ProducesResponseType(typeof(CatalogProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
+    [ProducesResponseType(typeof(CatalogProblemDetails), StatusCodes.Status500InternalServerError, "application/problem+json")]
+    public async Task<IActionResult> UpdateAsync(
+        Guid propertyId,
+        [FromHeader(Name = "X-Host-Reference-Id"), BindRequired] Guid hostReferenceId,
+        [FromBody] UpdatePropertyRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _propertyService.UpdateAsync(
+            new UpdatePropertyInput(
+                propertyId,
+                hostReferenceId,
+                request.NameIsPresent,
+                request.Name,
+                request.LocationIsPresent,
+                request.Location),
+            cancellationToken);
+
+        return Ok(Map(result));
     }
 
     private static PropertyResponse Map(PropertyResult result) =>
