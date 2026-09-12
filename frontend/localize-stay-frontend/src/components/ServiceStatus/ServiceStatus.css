@@ -1,0 +1,57 @@
+.status-card {
+  width: 100%;
+  max-width: 480px;
+  background-color: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+}
+
+.status-card__title {
+  font-size: var(--display-md-size);
+  font-weight: var(--display-md-weight);
+  line-height: var(--display-md-line-height);
+  margin-bottom: var(--space-base);
+}
+
+.status-card__loading {
+  color: var(--color-muted);
+  font-size: var(--body-sm-size);
+  line-height: var(--body-sm-line-height);
+}
+
+.status-card__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) 0;
+  font-size: var(--body-sm-size);
+  line-height: var(--body-sm-line-height);
+  color: var(--color-ink);
+  border-bottom: 1px solid var(--color-hairline-soft);
+}
+
+.status-row:last-child {
+  border-bottom: none;
+}
+
+.status-row__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-ink);
+}
+
+.status-row--unhealthy {
+  color: var(--color-error-text);
+}
+
+.status-row--unhealthy .status-row__dot {
+  background-color: var(--color-error-text);
+}
