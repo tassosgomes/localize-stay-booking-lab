@@ -5,13 +5,13 @@
   "original_base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
   "base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
   "target_ref": null,
-  "last_checkpoint": "1b612a3",
-  "phase": "validating",
-  "active_task": "5.0",
+  "last_checkpoint": "15ae20e6649273e6d9f7012344ef1e07cd0f1036",
+  "phase": "integration",
+  "active_task": "6.0",
   "attempt": 1,
   "max_attempts": 3,
   "full_attempt": 0,
-  "transport_retries": 0,
+  "transport_retries": 2,
   "specs": [
     "techspec.md",
     "frontend-techspec.md",
@@ -20,12 +20,10 @@
   "delivery": "branch",
   "validated_commit": null,
   "validated_tree": null,
-  "last_result": "VALIDATION APPROVED 5.0 (validator focused, ses_f68d03f33ffeU0Ih1lMG2MHqT7); review em 5_task_review.md; 0 bloqueantes",
+  "last_result": "CHECKPOINT OK 6.0 (integrator, ses_f689bf0b5ffeebZ3J986RjSs0U): 15ae20e, 14 arquivos; todas as 6 tasks done",
   "pending_delegation": {
     "role": "integrator",
-    "mode": "checkpoint-task",
-    "task": "5.0",
-    "attempt": 1
+    "mode": "prepare-integration"
   },
   "history": [
     {
@@ -51,6 +49,42 @@
     {
       "event": "task-4.0-done",
       "detail": "checkpoint 1b612a3 apos focused approved"
+    },
+    {
+      "event": "task-5.0-done",
+      "detail": "checkpoint 3989729; .gitignore coverage/ adiado para checkpoint 6.0"
+    },
+    {
+      "event": "dredd-deferred",
+      "detail": "recomendacao do review 3.0: rodar dredd na 6.0 se stack real subir + corrigir servers.url (nao bloqueante)"
+    },
+    {
+      "event": "task-6.0-blocked",
+      "detail": "3 bloqueios independentes pre-edicao; unblock exige stub Catalog sancionado + migration no postgres-main + gate-creator p/ Playwright"
+    },
+    {
+      "event": "intervention-unblock-6.0",
+      "detail": "usuario autorizou: (a) stub minimo Catalog availability-check no escopo 6.0; (b) aplicar migration AddReservationAndSaga ao postgres-main via dev-up/deploy; (c) gate-creator estende gate.sh p/ despachar e2e ao Playwright"
+    },
+    {
+      "event": "gate-delegation-cancelled",
+      "detail": "sem escritas do worker; retry transporte 1"
+    },
+    {
+      "event": "gate-playwright-ready",
+      "detail": "bloqueio 3 da 6.0 resolvido; nova rodada 6.0 attempt 1 com unblock autorizado"
+    },
+    {
+      "event": "implementer-6.0-cancelled",
+      "detail": "retry 2: continua do estado parcial; sem duplicar wiring do stub"
+    },
+    {
+      "event": "task-6.0-implement-ok",
+      "detail": "retry transporte 2 retomou estado parcial e completou: spec + playwright.config + .gitignore output; stub Catalog verificado completo"
+    },
+    {
+      "event": "task-6.0-done",
+      "detail": "checkpoint 15ae20e apos focused approved; fase integration"
     }
   ]
 }
