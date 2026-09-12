@@ -5,9 +5,9 @@
   "original_base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
   "base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
   "target_ref": null,
-  "last_checkpoint": "65ea51f",
+  "last_checkpoint": "1b612a3",
   "phase": "validating",
-  "active_task": "4.0",
+  "active_task": "5.0",
   "attempt": 1,
   "max_attempts": 3,
   "full_attempt": 0,
@@ -20,11 +20,11 @@
   "delivery": "branch",
   "validated_commit": null,
   "validated_tree": null,
-  "last_result": "VALIDATION APPROVED 4.0 (validator focused, ses_f68ec0673ffeVRg1HucRObzNoV); review em 4_task_review.md; 0 bloqueantes",
+  "last_result": "VALIDATION APPROVED 5.0 (validator focused, ses_f68d03f33ffeU0Ih1lMG2MHqT7); review em 5_task_review.md; 0 bloqueantes",
   "pending_delegation": {
     "role": "integrator",
     "mode": "checkpoint-task",
-    "task": "4.0",
+    "task": "5.0",
     "attempt": 1
   },
   "history": [
@@ -47,6 +47,10 @@
     {
       "event": "task-3.0-done",
       "detail": "checkpoint 65ea51f apos focused approved; dredd adiado p/ 6.0 (recomendacao)"
+    },
+    {
+      "event": "task-4.0-done",
+      "detail": "checkpoint 1b612a3 apos focused approved"
     }
   ]
 }

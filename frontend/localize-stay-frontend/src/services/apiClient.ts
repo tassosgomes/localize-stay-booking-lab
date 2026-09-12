@@ -7,7 +7,8 @@
 //   (`throwIfAborted` + fallback `INCOMPATIBLE_ABORT_SIGNAL`).
 // - Forma `baseUrl+path` (Booking, reservationApi.ts): `apiRequest({
 //   baseUrl, path, method, body, signal })` com `buildApiUrl(baseUrl, path)`
-//   e a semântica atual testada (Accept: application/json, sem fallback).
+//   e a semântica da jornada de reserva (Accept: application/json + guarda
+//   de realm de AbortSignal da task 5.0 para jsdom).
 export type ApiMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
 // Alias histórico da fatia Booking (task 4.0); idêntico a ApiMethod.
@@ -51,6 +52,31 @@ function isUrlForm(options: ApiRequestOptions): options is ApiRequestByUrl {
   return 'url' in options;
 }
 
+// Alguns ambientes de teste com DOM simulado (jsdom) expõem um AbortController
+// de realm distinta da do fetch nativo do Node, que rejeita o signal com
+// TypeError ("Expected signal to be an instance of AbortSignal"). Detectamos a
+// compatibilidade uma única vez construindo um Request descartável: no browser
+// (mesma realm) o signal sempre flui e o cancelamento é real; em ambientes
+// incompatíveis o request segue sem cancelamento de transporte e o chamador
+// mantém o cancelamento lógico (ignorar o resultado após abort()).
+let fetchAcceptsAbortSignals: boolean | undefined;
+
+function acceptsAbortSignals(): boolean {
+  if (fetchAcceptsAbortSignals === undefined) {
+    if (typeof Request !== 'function') {
+      fetchAcceptsAbortSignals = true;
+    } else {
+      try {
+        new Request('http://localize-stay.lab/probe', { signal: new AbortController().signal });
+        fetchAcceptsAbortSignals = true;
+      } catch {
+        fetchAcceptsAbortSignals = false;
+      }
+    }
+  }
+  return fetchAcceptsAbortSignals;
+}
+
 export async function apiRequest(options: ApiRequestOptions): Promise<Response> {
   if (isUrlForm(options)) {
     const { method, url, headers, body, signal } = options;
@@ -91,6 +117,6 @@ export async function apiRequest(options: ApiRequestOptions): Promise<Response> 
     method,
     headers: requestHeaders,
     body: body === undefined ? undefined : JSON.stringify(body),
-    signal,
+    signal: signal !== undefined && acceptsAbortSignals() ? signal : undefined,
   });
 }
