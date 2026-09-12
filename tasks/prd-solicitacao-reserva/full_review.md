@@ -201,3 +201,81 @@ Stack E2E (operação de ambiente permitida, já no ar pelo caminho sancionado
   Invariante 2, filtro vazio — não suíte ausente), idêntico à rodada 1; cobertura
   provada por seletores equivalentes (14/14) + suíte completa. Harness de main,
   sem dono neste PRD; nenhuma ação requerida.
+
+---
+
+# FULL Validation — RODADA 3 (pós-rebase sobre base externa nova; worker fresco)
+
+- Mode: **full** (esta rodada existe SOMENTE porque a base mudou — regra do fluxo —
+  não por defeito; julgamento semântico das rodadas 1–2 reutilizado como referência,
+  com reexecução integral dos gates sobre a árvore final)
+- base_ref nova: `af25088a8e8c044bf60cc06ca49423563502b62d` (origin/main: pipeline CI
+  + USER Dockerfiles; delta `f5d6cda..af25088` = 7 arquivos, 384 inserções, zero
+  overlap com o PRD)
+- validated_commit: `0ba2d07a7aec47ae3928e608a9d7f907efe1e640`
+- validated_tree: `f994a2410a2ec9c2cd30c751ede26907320b3904`
+- Diff do PRD revisado: `git diff af25088..0ba2d07` (104 arquivos do PRD, idêntico
+  em conteúdo ao da rodada 2)
+- HEAD e árvore conferidos idênticos no início e no fim desta rodada. Único dirty:
+  `flow-state.json` (já sujo ANTES — bookkeeping do integrator/rebase, não tocado) +
+  `full_review.md` (este relatório, deliverable mandatado). Nenhum código, checkbox,
+  frontmatter, `flow-state.json` ou commit alterado pelo validator.
+
+## Resultado
+
+**FULL VALIDATION APROVADA** — rebase 10/10 sem conflitos confirmado mecanicamente
+puro (delta `fc5adc9..0ba2d07` == delta da base externa, byte a byte, + bookkeeping);
+código de produto 1.0–6.0 byte-idêntico ao aprovado na rodada 2; todos os gates
+reexecutados verdes na árvore final; F1 segue resolvida (E2E 2/2 × 2 runs), F2 segue
+não bloqueante sem mudança de quadro; 0 recomendações novas (R1–R4 da rodada 1
+continuam válidas como acompanhamento).
+
+## Rebase: evidência de pureza mecânica
+
+- `git diff fc5adc9..0ba2d07 --stat` = **9 arquivos**: os mesmos 7 da base externa
+  (`.dockerignore`, `.github/workflows/ci.yml`, 5 Dockerfiles — 384 inserções,
+  idênticas ao delta `f5d6cda..af25088`) + `flow-state.json` (só bookkeeping:
+  `full_attempt` 1→2, eventos `task-6.0-fix-done`/`full-approved`/
+  `revalidation-required`/`integration-blocked-reports`, `last_checkpoint→fc5adc9`,
+  fase `validating→integration`) + `full_review.md` (só §rodada 2).
+- Cada um dos 7 arquivos da base está **byte-idêntico à versão em `af25088`**
+  (`git diff af25088..HEAD -- <arquivo>` vazio nos 7) — o rebase não editou,
+  mesclou nem adaptou nada da base; trouxe verbatim.
+- **Zero diff** em `services/booking/**`, `frontend/.../src/**`, `e2e/**`,
+  `playwright.config.ts`, `scripts/dev-up.sh`, `scripts/ai-flow/**` desde `fc5adc9`
+  (`git diff fc5adc9..HEAD --name-only` vazio em todos) — produto 1.0–5.0 e wiring
+  6.0 intactos; vereditos semânticos da rodada 2 seguem válidos sem re-auditoria.
+
+## Gates reexecutados pelo validator nesta rodada (todos nesta sessão, árvore final)
+
+| # | Comando | Resultado |
+|---|---|---|
+| 1a | `gate.sh --filter="...UnitTests.Reservations.ReservationTests" --filter="...IntegrationTests.Reservations.ReservationPersistenceTests"` | **APROVADO** — 21 + 2, 5 builds 0W/0E |
+| 1b | `gate.sh --filter="...IntegrationTests.Catalog.CatalogAvailabilityClientTests"` | **APROVADO** — 4/4 |
+| 1c | `gate.sh --filter="...IntegrationTests.Reservations.ReservationEndpointTests"` | **APROVADO** — 7/7 (após 1 flake de infra, ver nota) |
+| 2a | `gate.sh --filter="reservationApi"` (sem sufixo; ver F2) | **APROVADO** — 14/14 |
+| 2b | `gate.sh --filter="ReservationRequestPage" --filter="reservationFormValidation" --filter="reservationErrorMapping"` | **APROVADO** — 17+20+10 |
+| 2c | `gate.sh --all-tests` + `vitest` direto no dir do frontend | **APROVADO** — **102/102 em 9 arquivos** (63 reserva + 39 irmã/fundação) |
+| 3a | `gate.sh --filter="reservation-request"` (canônico, run 1) | **APROVADO** — `reservation-request=2 rtl=0 e2e=2` |
+| 3b | `gate.sh --filter="reservation-request"` (canônico, run 2, anti-flake) | **APROVADO** — idêntico a 3a |
+| 4 | `npm run api:generate` + `git diff --exit-code` booking.ts e catalog.ts | **DRIFT ZERO** nos dois |
+
+Stack E2E (operação de ambiente permitida; stack já no ar, proveniência conferida:
+PIDs servindo desta worktree — Catalog :5101, Booking :5102, frontend :5173, todos
+`/health/ready` 200; preflight `OPTIONS /v1/reservations` com
+`Origin: http://localhost:5175` → 204 **com** `Access-Control-Allow-Origin` correto,
+fix F1 ativo). Nenhuma regressão vs rodada 2 em nenhum gate; nenhuma task dona a
+atribuir — **zero defeitos encontrados**.
+
+## Notas de ambiente (sem efeito no julgamento)
+
+- N1: a 1ª invocação do filtro 1c falhou em `ResourceReaper`/Ryuk do Testcontainers
+  (falha de startup do harness de containers, 7/7 `Failed` em 19ms sem executar
+  teste); retry imediato, sem tocar nada, → **7/7 APROVADO**, e todos os demais
+  filtros Testcontainers (1a/1b) passaram de primeira. Flake de infra, não regressão:
+  o código sob teste é byte-idêntico ao da rodada 2.
+- N2: `docker ps` mostra `localize-stay-e2e-pg` residual no ar (43+ min, da stack dev)
+  + containers mortos de outros projetos; sem interferência nos resultados.
+- F2: quadro inalterado (filtros com sufixo `.test` seguem vazios no gate atual;
+  cobertura provada por seletores equivalentes + 102/102). Não re-auditado além
+  disso por ausência de mudança relevante.
