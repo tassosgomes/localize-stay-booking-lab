@@ -4,9 +4,9 @@
   "original_base_ref": "5d0f9eff8548db9d8846782c3133743790014825",
   "base_ref": "5d0f9eff8548db9d8846782c3133743790014825",
   "target_ref": null,
-  "last_checkpoint": "c4b4061cee73f860f5b625a28fb1c4a5973a28bd",
+  "last_checkpoint": "cb37c5263d36f79fb84919bb77de7b65eace3f06",
   "phase": "checkpoint",
-  "active_task": "3.0",
+  "active_task": "4.0",
   "attempt": 1,
   "max_attempts": 3,
   "full_attempt": 0,
@@ -19,15 +19,15 @@
   "pending_delegation": {
     "role": "integrator",
     "mode": "checkpoint-task",
-    "task": "3.0",
+    "task": "4.0",
     "attempt": "1/3"
   },
   "last_result": {
     "outcome": "approved",
     "mode": "focused",
-    "task": "3.0",
+    "task": "4.0",
     "attempt": 1,
-    "report": "tasks/prd-cadastro-property/3_task_review.md",
+    "report": "tasks/prd-cadastro-property/4_task_review.md",
     "blockers": 0,
     "recommendations": 3
   },
@@ -41,16 +41,20 @@
       "result": "CHECKPOINT OK c4b4061"
     },
     {
-      "event": "implement-3.0-attempt1",
-      "result": "IMPLEMENTATION COMPLETE: gate propertyApi.test=12 APROVADO"
+      "event": "cycle-3.0",
+      "result": "CHECKPOINT OK cb37c52"
     },
     {
-      "event": "validate-3.0-focused",
+      "event": "implement-4.0-attempt1",
+      "result": "IMPLEMENTATION COMPLETE: gate PropertyCreate.test=9 APROVADO"
+    },
+    {
+      "event": "validate-4.0-focused",
       "result": "VALIDACAO APROVADA focused (3 recs nao bloqueantes)"
     },
     {
-      "event": "delegate-checkpoint-3.0",
-      "result": "pending: integrator checkpoint-task 3.0"
+      "event": "delegate-checkpoint-4.0",
+      "result": "pending: integrator checkpoint-task 4.0"
     }
   ]
 }

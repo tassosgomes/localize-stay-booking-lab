@@ -195,8 +195,11 @@ async function send(
       signal,
     });
   } catch (error) {
-    if (isAbortError(error)) {
-      throw error;
+    if (signal?.aborted || isAbortError(error)) {
+      if (isAbortError(error)) {
+        throw error;
+      }
+      throw new DOMException('The operation was aborted.', 'AbortError');
     }
     return { ok: false, problem: networkProblem() };
   }
