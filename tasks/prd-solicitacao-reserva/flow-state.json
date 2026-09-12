@@ -1,90 +1,140 @@
 {
-  "schema_version": 1,
-  "branch": "feature/prd-solicitacao-reserva",
-  "worktree": "/home/tsgomes/github-tassosgomes/localize-stay-booking-lab-prd-solicitacao-reserva",
-  "original_base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
-  "base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
-  "target_ref": null,
-  "last_checkpoint": "15ae20e6649273e6d9f7012344ef1e07cd0f1036",
-  "phase": "integration",
   "active_task": "6.0",
-  "attempt": 1,
+  "attempt": 2,
+  "base_ref": "f5d6cda4c63487b64b9e8a13811d1e8f21d4a846",
+  "branch": "feature/prd-solicitacao-reserva",
+  "delivery": "branch",
+  "full_attempt": 1,
+  "history": [
+    {
+      "detail": "Plano aprovado (backend+frontend), prerequisito fundacao-fase0 merged em main; gate OK; nova worktree autorizada pelo usuario",
+      "event": "init"
+    },
+    {
+      "detail": "attempt 1 gate verde; correcao metadata gate_command em 1_task.md",
+      "event": "task-1.0-implement-ok"
+    },
+    {
+      "detail": "checkpoint cbb0242 apos focused approved",
+      "event": "task-1.0-done"
+    },
+    {
+      "detail": "attempt 1 gate verde 4/4",
+      "event": "task-2.0-implement-ok"
+    },
+    {
+      "detail": "checkpoint 7cb832c apos focused approved",
+      "event": "task-2.0-done"
+    },
+    {
+      "detail": "attempt 1 gate 7/7 + unit 11/11 + regressao 51/51; dredd adiado",
+      "event": "task-3.0-implement-ok"
+    },
+    {
+      "detail": "checkpoint 65ea51f apos focused approved",
+      "event": "task-3.0-done"
+    },
+    {
+      "detail": "attempt 1 gate 14 testes + drift zero",
+      "event": "task-4.0-implement-ok"
+    },
+    {
+      "detail": "checkpoint 1b612a3 apos focused approved",
+      "event": "task-4.0-done"
+    },
+    {
+      "detail": "attempt 1 gate 17+20+10, suite 63/63, cobertura 97%; gate_command corrigido",
+      "event": "task-5.0-implement-ok"
+    },
+    {
+      "detail": "checkpoint 3989729 apos focused approved; .gitignore adiado p/ 6.0",
+      "event": "task-5.0-done"
+    },
+    {
+      "detail": "3 bloqueios pre-edicao (Catalog sem availability-check; migration nao aplicada; gate sem Playwright); tentativa preservada",
+      "event": "task-6.0-blocked"
+    },
+    {
+      "detail": "usuario autorizou stub Catalog + migration postgres-main + gate-creator Playwright",
+      "event": "intervention-unblock-6.0"
+    },
+    {
+      "detail": "delegacao gate-creator cancelada sem escritas; retry transporte 1",
+      "event": "gate-delegation-cancelled"
+    },
+    {
+      "detail": "GATE READY: is_e2e_filter + bloco Playwright + exclude e2e do Vitest",
+      "event": "gate-playwright-ready"
+    },
+    {
+      "detail": "delegacao implementer 6.0 cancelada; writes parciais preservadas; retry transporte 2",
+      "event": "implementer-6.0-cancelled"
+    },
+    {
+      "detail": "retry retomou parcial e completou: spec + playwright.config; Playwright 2/2 reais",
+      "event": "task-6.0-implement-ok"
+    },
+    {
+      "detail": "checkpoint 15ae20e apos focused approved; fase integration",
+      "event": "task-6.0-done"
+    },
+    {
+      "detail": "main avancou p/ f5d6cda (cadastro-property); conflito Directory.Packages.props",
+      "event": "integration-blocked"
+    },
+    {
+      "detail": "props resolvido por uniao; rebase --continue recusado por flow-state unstaged (orquestrador); nota foi p/ stash",
+      "event": "props-resolved-stash"
+    },
+    {
+      "detail": "conflito real apiClient.ts (assinaturas incompativeis) + api:generate divergente; decisao: uniao sem mudar consumidores",
+      "event": "apiclient-blocked"
+    },
+    {
+      "detail": "rebase completo sobre f5d6cda: apiClient uniao, handlers/env/package uniao, api:generate duplo, MSW lifecycle dedup, props dedup; 102 testes frontend + 32 unit verdes; 6.0 restaurado via cherry-pick (da4dfdc sobre flow)",
+      "event": "rebase-complete"
+    },
+    {
+      "detail": "stash pop falhou (stash mid-rebase); recuperado via checkout HEAD + drop; HEAD da4dfdc intacto; origin/main estavel f5d6cda",
+      "event": "stash-recovery"
+    },
+    {
+      "event": "full-rejected",
+      "detail": "F1->reopen 6.0; F2 registrado sem dono (gap do harness em main, fora do escopo)"
+    },
+    {
+      "event": "task-6.0-reopened",
+      "detail": "reopen d2db5a3; fix F1 attempt 2"
+    },
+    {
+      "event": "task-6.0-fix-ok",
+      "detail": "F1 corrigido no wiring E2E; revalidation attempt 2"
+    },
+    {
+      "event": "task-6.0-revalidated",
+      "detail": "F1 aprovado em revalidation; checkpoint do fix"
+    }
+  ],
+  "last_checkpoint": "da4dfdccb40491df5c8821fc786823849bdc083a",
+  "last_result": "VALIDATION APPROVED revalidation F1 (validator, ses_f682d94f8ffe0sdIMBzBXrO7nm): gate 2/2 x2, preflight :5175+:5173 OK, irma 14/14, diff restrito ao wiring",
   "max_attempts": 3,
-  "full_attempt": 0,
-  "transport_retries": 2,
+  "original_base_ref": "08daf5e32cca43d0713600d0c495afeaebf211de",
+  "pending_delegation": {
+    "role": "integrator",
+    "mode": "checkpoint-task",
+    "task": "6.0",
+    "attempt": 2
+  },
+  "phase": "validating",
+  "schema_version": 1,
   "specs": [
     "techspec.md",
     "frontend-techspec.md",
     "api-contract.yaml"
   ],
-  "delivery": "branch",
+  "target_ref": "f5d6cda4c63487b64b9e8a13811d1e8f21d4a846",
+  "transport_retries": 2,
   "validated_commit": null,
   "validated_tree": null,
-  "last_result": "CHECKPOINT OK 6.0 (integrator, ses_f689bf0b5ffeebZ3J986RjSs0U): 15ae20e, 14 arquivos; todas as 6 tasks done",
-  "pending_delegation": {
-    "role": "integrator",
-    "mode": "prepare-integration"
-  },
-  "history": [
-    {
-      "event": "init",
-      "detail": "Plano aprovado (backend+frontend), prerequisito fundacao-fase0 merged em main; gate OK; nova worktree autorizada pelo usuario"
-    },
-    {
-      "event": "task-1.0-implement-ok",
-      "detail": "attempt 1 gate verde; correcao metadata gate_command em 1_task.md"
-    },
-    {
-      "event": "task-1.0-done",
-      "detail": "checkpoint cbb0242 apos focused approved"
-    },
-    {
-      "event": "task-2.0-done",
-      "detail": "checkpoint 7cb832c apos focused approved"
-    },
-    {
-      "event": "task-3.0-done",
-      "detail": "checkpoint 65ea51f apos focused approved; dredd adiado p/ 6.0 (recomendacao)"
-    },
-    {
-      "event": "task-4.0-done",
-      "detail": "checkpoint 1b612a3 apos focused approved"
-    },
-    {
-      "event": "task-5.0-done",
-      "detail": "checkpoint 3989729; .gitignore coverage/ adiado para checkpoint 6.0"
-    },
-    {
-      "event": "dredd-deferred",
-      "detail": "recomendacao do review 3.0: rodar dredd na 6.0 se stack real subir + corrigir servers.url (nao bloqueante)"
-    },
-    {
-      "event": "task-6.0-blocked",
-      "detail": "3 bloqueios independentes pre-edicao; unblock exige stub Catalog sancionado + migration no postgres-main + gate-creator p/ Playwright"
-    },
-    {
-      "event": "intervention-unblock-6.0",
-      "detail": "usuario autorizou: (a) stub minimo Catalog availability-check no escopo 6.0; (b) aplicar migration AddReservationAndSaga ao postgres-main via dev-up/deploy; (c) gate-creator estende gate.sh p/ despachar e2e ao Playwright"
-    },
-    {
-      "event": "gate-delegation-cancelled",
-      "detail": "sem escritas do worker; retry transporte 1"
-    },
-    {
-      "event": "gate-playwright-ready",
-      "detail": "bloqueio 3 da 6.0 resolvido; nova rodada 6.0 attempt 1 com unblock autorizado"
-    },
-    {
-      "event": "implementer-6.0-cancelled",
-      "detail": "retry 2: continua do estado parcial; sem duplicar wiring do stub"
-    },
-    {
-      "event": "task-6.0-implement-ok",
-      "detail": "retry transporte 2 retomou estado parcial e completou: spec + playwright.config + .gitignore output; stub Catalog verificado completo"
-    },
-    {
-      "event": "task-6.0-done",
-      "detail": "checkpoint 15ae20e apos focused approved; fase integration"
-    }
-  ]
+  "worktree": "/home/tsgomes/github-tassosgomes/localize-stay-booking-lab-prd-solicitacao-reserva"
 }

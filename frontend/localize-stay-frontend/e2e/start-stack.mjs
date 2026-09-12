@@ -13,6 +13,19 @@ const repoRoot = resolve(frontendRoot, '../..');
 const vitePort = process.env.E2E_VITE_PORT ?? '5175';
 const catalogUrl = process.env.E2E_CATALOG_URL ?? 'http://127.0.0.1:5111';
 const frontendOrigin = `http://localhost:${vitePort}`;
+// Booking é externo ao harness E2E (sobe via scripts/dev-up.sh, que injeta as
+// origens E2E no Booking via env Cors__AllowedOrigins — ver F1 de
+// tasks/prd-solicitacao-reserva/full_review.md). O default de produto permite
+// só http://localhost:5173; sem o env do harness, o preflight de :5175 volta
+// sem Access-Control-Allow-Origin e o browser bloqueia o POST /v1/reservations.
+const bookingUrl = (
+  process.env.E2E_BOOKING_URL ??
+  process.env.VITE_BOOKING_URL ??
+  'http://localhost:5102'
+).replace(/\/+$/, '');
+const bookingApiUrl =
+  process.env.VITE_BOOKING_API_URL ?? `${bookingUrl}/v1`;
+const e2eOrigins = [frontendOrigin, `http://127.0.0.1:${vitePort}`];
 const pgContainer = process.env.E2E_PG_CONTAINER ?? 'localize-stay-e2e-pg';
 const pgPort = process.env.E2E_PG_PORT ?? '54332';
 const catalogConnection =
@@ -203,6 +216,48 @@ async function ensureCatalog() {
 
 await ensureCatalog();
 
+// Guarda de diagnóstico (nunca fatal): confere que o Booking externo permite
+// as origens do harness E2E. Se o Booking estiver desatualizado (subido antes
+// do fix F1, sem Cors__AllowedOrigins de :5175), o spec de reservation-request
+// falharia com "Erro inesperado" no browser; o aviso abaixo diz exatamente
+// como corrigir. PropertyUpdate não chama o Booking, então a ausência dele
+// (ou o CORS pendente) nunca derruba este harness.
+async function probeBookingCors() {
+  for (const origin of e2eOrigins) {
+    let allowOrigin = null;
+    try {
+      const response = await fetch(`${bookingUrl}/v1/reservations`, {
+        method: 'OPTIONS',
+        headers: {
+          Origin: origin,
+          'Access-Control-Request-Method': 'POST',
+        },
+        signal: AbortSignal.timeout(5000),
+      });
+      allowOrigin = response.headers.get('access-control-allow-origin');
+    } catch (error) {
+      console.warn(
+        `E2E: Booking em ${bookingUrl} inalcançável (${error.message}). ` +
+          `PropertyUpdate não precisa dele; reservation-request exige o Booking do scripts/dev-up.sh no ar.`,
+      );
+      return false;
+    }
+    if (allowOrigin !== origin) {
+      console.warn(
+        `E2E: Booking em ${bookingUrl} NÃO permite a origem E2E ${origin} ` +
+          `(Access-Control-Allow-Origin: ${allowOrigin ?? '<ausente>'}). ` +
+          `Suba o Booking via scripts/dev-up.sh (que injeta Cors__AllowedOrigins de :5175) ` +
+          `ou reinicie-o com Cors__AllowedOrigins__0=${e2eOrigins[0]} Cors__AllowedOrigins__1=${e2eOrigins[1]}.`,
+      );
+      return false;
+    }
+  }
+  console.log(`E2E: Booking CORS ok em ${bookingUrl} para ${e2eOrigins.join(' + ')}`);
+  return true;
+}
+
+await probeBookingCors();
+
 const vite = spawnChild(
   process.execPath,
   [
@@ -218,7 +273,8 @@ const vite = spawnChild(
     env: {
       ...process.env,
       VITE_CATALOG_URL: catalogUrl,
-      VITE_BOOKING_URL: process.env.VITE_BOOKING_URL ?? 'http://localhost:5102',
+      VITE_BOOKING_URL: process.env.VITE_BOOKING_URL ?? bookingUrl,
+      VITE_BOOKING_API_URL: bookingApiUrl,
       VITE_PAYMENT_URL: process.env.VITE_PAYMENT_URL ?? 'http://localhost:5103',
     },
   },

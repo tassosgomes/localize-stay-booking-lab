@@ -80,7 +80,14 @@ if $WITH_WORKER; then
 fi
 
 start_dotnet "catalog" "services/catalog/src/1-Services/LocalizeStay.Catalog.Api" 5101
+# O browser do E2E Playwright roda em :5175 (127.0.0.1), não no dev :5173.
+# O default de produto permite só http://localhost:5173 (CorsExtensions +
+# appsettings); aqui, só env do harness dev (nada de default de produto),
+# liberamos também as origens do harness E2E no Booking (aditivo).
+export Cors__AllowedOrigins__0="http://localhost:5175"
+export Cors__AllowedOrigins__1="http://127.0.0.1:5175"
 start_dotnet "booking" "services/booking/src/1-Services/LocalizeStay.Booking.Api" 5102
+unset Cors__AllowedOrigins__0 Cors__AllowedOrigins__1
 start_dotnet "payment" "services/payment/src/1-Services/LocalizeStay.Payment.Api" 5103
 if $WITH_WORKER; then
   start_dotnet "notification-worker" "services/notification-worker/src/1-Services/LocalizeStay.Notification.Worker" 5104
