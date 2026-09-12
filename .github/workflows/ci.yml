@@ -1,0 +1,249 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      dotnet_matrix: ${{ steps.matrix.outputs.matrix }}
+      frontend_changed: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            catalog:
+              - 'services/catalog/**'
+              - 'Directory.Build.props'
+              - 'Directory.Packages.props'
+              - 'NuGet.Config'
+            booking:
+              - 'services/booking/**'
+              - 'services/notification-worker/**'
+              - 'Directory.Build.props'
+              - 'Directory.Packages.props'
+              - 'NuGet.Config'
+            payment:
+              - 'services/payment/**'
+              - 'Directory.Build.props'
+              - 'Directory.Packages.props'
+              - 'NuGet.Config'
+            notification_worker:
+              - 'services/notification-worker/**'
+              - 'Directory.Build.props'
+              - 'Directory.Packages.props'
+              - 'NuGet.Config'
+            frontend:
+              - 'frontend/localize-stay-frontend/**'
+
+      # dorny/paths-filter só diz o que mudou; nome de pasta e nome de .sln
+      # não são 1:1 (ex.: notification-worker -> LocalizeStay.Notification.sln),
+      # então montamos aqui um item completo por serviço afetado.
+      - name: Build dotnet matrix
+        id: matrix
+        run: |
+          declare -A SLN=(
+            [catalog]="services/catalog/LocalizeStay.Catalog.sln"
+            [booking]="services/booking/LocalizeStay.Booking.sln"
+            [payment]="services/payment/LocalizeStay.Payment.sln"
+            [notification-worker]="services/notification-worker/LocalizeStay.Notification.sln"
+          )
+          declare -A HAS_TESTS=(
+            [catalog]=true
+            [booking]=true
+            [payment]=true
+            [notification-worker]=false
+          )
+          declare -A CHANGED=(
+            [catalog]="${{ steps.filter.outputs.catalog }}"
+            [booking]="${{ steps.filter.outputs.booking }}"
+            [payment]="${{ steps.filter.outputs.payment }}"
+            [notification-worker]="${{ steps.filter.outputs.notification_worker }}"
+          )
+
+          ITEMS='[]'
+          for name in catalog booking payment notification-worker; do
+            if [[ "${CHANGED[$name]}" == "true" ]]; then
+              ITEMS=$(jq -c \
+                --arg service "$name" \
+                --arg sln "${SLN[$name]}" \
+                --arg dockerfile "services/$name/Dockerfile" \
+                --arg image "$name" \
+                --argjson has_tests "${HAS_TESTS[$name]}" \
+                '. + [{service: $service, sln: $sln, dockerfile: $dockerfile, image: $image, has_tests: $has_tests}]' \
+                <<<"$ITEMS")
+            fi
+          done
+          echo "matrix=$ITEMS" >> "$GITHUB_OUTPUT"
+
+  dotnet:
+    needs: changes
+    if: needs.changes.outputs.dotnet_matrix != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.changes.outputs.dotnet_matrix) }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore "${{ matrix.sln }}"
+
+      - name: Build
+        run: dotnet build "${{ matrix.sln }}" -c Release --no-restore
+
+      # Testcontainers (Postgres/RabbitMQ) usa o Docker do próprio runner.
+      - name: Test
+        if: matrix.has_tests
+        run: dotnet test "${{ matrix.sln }}" -c Release --no-build --logger "console;verbosity=normal"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image }}
+          tags: |
+            type=sha,format=short,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # Login só é necessário quando vamos publicar (merge na main).
+      - name: Login to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # PR: builda e carrega local (valida o Dockerfile), sem push.
+      # push/main: builda e publica no GHCR.
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          load: true
+          push: ${{ github.event_name == 'push' }}
+
+      - name: Primary tag for scan
+        id: primary_tag
+        run: echo "tag=$(head -n1 <<< '${{ steps.meta.outputs.tags }}')" >> "$GITHUB_OUTPUT"
+
+      # Scan de segurança sempre roda e nunca falha o job (severidade só reportada).
+      - name: Trivy scan (image)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ steps.primary_tag.outputs.tag }}
+          format: sarif
+          output: trivy-${{ matrix.image }}.sarif
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Upload Trivy results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-${{ matrix.image }}.sarif
+          category: trivy-${{ matrix.image }}
+
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend_changed == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/localize-stay-frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: frontend/localize-stay-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (tsc + vite build)
+        run: npm run build
+
+      - name: Test (vitest)
+        run: npm test
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/frontend
+          tags: |
+            type=sha,format=short,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Login to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: frontend/localize-stay-frontend
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          load: true
+          push: ${{ github.event_name == 'push' }}
+
+      - name: Primary tag for scan
+        id: primary_tag
+        run: echo "tag=$(head -n1 <<< '${{ steps.meta.outputs.tags }}')" >> "$GITHUB_OUTPUT"
+
+      - name: Trivy scan (image)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ steps.primary_tag.outputs.tag }}
+          format: sarif
+          output: trivy-frontend.sarif
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Upload Trivy results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-frontend.sarif
+          category: trivy-frontend
