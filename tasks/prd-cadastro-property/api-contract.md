@@ -2,7 +2,7 @@
 
 > **Gerado a partir de:** `tasks/prd-cadastro-property/prd.md`  
 > **Data:** 2026-09-12  
-> **Status:** Em revisão  
+> **Status:** Aprovado  
 > **Versão do contrato:** 1.0.0
 
 ---
