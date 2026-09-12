@@ -1,0 +1,191 @@
+{
+  "version": 1,
+  "skills": {
+    "dotnet-architecture": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-architecture/SKILL.md",
+      "computedHash": "d3260fc27ec7e13c7a86fa3db03e095dbc1d544cb335c409f5ff89e05ecc3f3f"
+    },
+    "dotnet-code-quality": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-code-quality/SKILL.md",
+      "computedHash": "8c84df9084e933b427da4a406ab3fbb2f98cb5219ea9fe7ad42b0956948d39d6"
+    },
+    "dotnet-dependency-config": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-dependency-config/SKILL.md",
+      "computedHash": "89b6f29ee0d918c97214fed36248ba3808ae82942d4f37be8bcc93f9fd7448d2"
+    },
+    "dotnet-index": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-index/SKILL.md",
+      "computedHash": "f5b9d94d5db0c4d6c6446a50ac6744efb31d20932455df604b2ced7d2815a1bc"
+    },
+    "dotnet-observability": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-observability/SKILL.md",
+      "computedHash": "098b1579083d1f1a7ba6322daa6339b79a8bbba5f2c7065fe077d7274ecfc76b"
+    },
+    "dotnet-performance": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-performance/SKILL.md",
+      "computedHash": "fdb2fcb9d174cad663c043492b63643fe57f93dbb12b3fbd8c7ca55298fff403"
+    },
+    "dotnet-production-readiness": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-production-readiness/SKILL.md",
+      "computedHash": "9ac8999ffda686c63262a229a7c5b494e221cc3da867727c3b5ceaefc520a99f"
+    },
+    "dotnet-program-setup": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-program-setup/SKILL.md",
+      "computedHash": "02e56cf23e83405460a365d1d96e236dfecb8183e867e16f1766b852551540c0"
+    },
+    "dotnet-testing": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-testing/SKILL.md",
+      "computedHash": "a772862c4495cf008598d9b9b9365b114bacdcab88b9c3cd8ad003105dd52631"
+    },
+    "react-architecture": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-architecture/SKILL.md",
+      "computedHash": "fd2dc8a1ba0ba6e1c21f41395d946c009919aba21e5d65ace1a8327bf896aedd"
+    },
+    "react-code-quality": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-code-quality/SKILL.md",
+      "computedHash": "bb39fa9248cef10ef3a0126b0972ad6d0e5a80fe967ebfd7e559655846c14153"
+    },
+    "react-observability": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-observability/SKILL.md",
+      "computedHash": "7cbcc7cf8563e246a46e64d3a6f144e9a2bb2e5d54fe1dded22e879e22f5892b"
+    },
+    "react-production-readiness": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-production-readiness/SKILL.md",
+      "computedHash": "ee50545f06c8fdfbc67b9b571d07c8fc81a90d8db9c529327be88585bc367a88"
+    },
+    "react-runtime-config": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-runtime-config/SKILL.md",
+      "computedHash": "f15b7f82b2a6733bbe3228c369c2000a6d080980affb8f7ac235b39b39c8574b"
+    },
+    "react-subpath-deploy": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-subpath-deploy/SKILL.md",
+      "computedHash": "67902386d477f7337137b1dc69d75e0a9a1798fc6f19ae9b220ca00822c1c4fc"
+    },
+    "react-testing": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-testing/SKILL.md",
+      "computedHash": "b39d29f89e8d14d5a4ad1e6a34a28cdc6f74a6ab06bf597ba52b5eafaf6896d0"
+    },
+    "tsg-flow-architecture-baseline": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tsg-flow-architecture-baseline/SKILL.md",
+      "computedHash": "39a28886ee6951e73d3b19dc6691f9bcd94a70dc7ad3c4175ebcae90526fc57d"
+    },
+    "tsg-flow-capability-backlog": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tsg-flow-capability-backlog/SKILL.md",
+      "computedHash": "3e36d3a5842bef65dbe8600113809552b8b36f57bcab3da61bcce73d5e7479ea"
+    },
+    "tsg-flow-contract-creator": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tsg-flow-contract-creator/SKILL.md",
+      "computedHash": "63653580210bf5f031ed9cdead99a3073447e90bf8bad947601da9e6319876b1"
+    },
+    "tsg-flow-domain-creator": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tsg-flow-domain-creator/SKILL.md",
+      "computedHash": "c57e3de42f2d6416babe58b74f9d1041923486f9846c4239863a5fa3c63036d9"
+    },
+    "tsg-flow-domain-decomposer": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tsg-flow-domain-decomposer/SKILL.md",
+      "computedHash": "d8d0e9d3b98d5dd70308b88eb6afddef9c26f9a9caf01ac4a7da31603a0c2ce4"
+    },
+    "tsg-flow-frontend-techspec-creator": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tsg-flow-frontend-techspec-creator/SKILL.md",
+      "computedHash": "220be15071c2110d1f2b697c1e9a96583aa42d962cb2652b443660d42f3cf1ff"
+    },
+    "tsg-flow-gate-creator": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tsg-flow-gate-creator/SKILL.md",
+      "computedHash": "e4631cebe6e4d733f0176511d04846ffbccefd1faf86e856820f01711437e749"
+    },
+    "tsg-flow-implementer": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tsg-flow-implementer/SKILL.md",
+      "computedHash": "9682cf754a5ae8f951475729512daea57d3f11ae8a168643d7f4ec65d7d26f6c"
+    },
+    "tsg-flow-integrator": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tsg-flow-integrator/SKILL.md",
+      "computedHash": "d5a82fe422fd193f9b66f45acc240d3b0f47db47dc90daf86c23dfea1f87832b"
+    },
+    "tsg-flow-orchestrator": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tsg-flow-orchestrator/SKILL.md",
+      "computedHash": "24c923352ee67f18837cc69ef2282630b026b37fa84aee9cf1abeec483dc04b7"
+    },
+    "tsg-flow-prd-creator": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tsg-flow-prd-creator/SKILL.md",
+      "computedHash": "b4c95329af57775c03db7cfebc6f77ee342585bf478535f2a12d9393ddf4ae06"
+    },
+    "tsg-flow-task-creator": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tsg-flow-task-creator/SKILL.md",
+      "computedHash": "bc44257dceec2f7538e820d916f1e6ac6cb23766930dde7804f577e4e091817c"
+    },
+    "tsg-flow-techspec-creator": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tsg-flow-techspec-creator/SKILL.md",
+      "computedHash": "173af3c9fc46c94379f9f92b22dcfd90890cdbf2ab23bb4cba88c578820a6e46"
+    },
+    "tsg-flow-validator": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tsg-flow-validator/SKILL.md",
+      "computedHash": "a192b42b919a5187a98b2bdb4f6c22748db2681263067c74cb63cca413ee64d3"
+    },
+    "tsg-flow-vision-creator": {
+      "source": "tassosgomes/my-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tsg-flow-vision-creator/SKILL.md",
+      "computedHash": "74de8fe2b59eac642bae2e193755fe764850fbb40735548fa729e8248ce71a3f"
+    }
+  }
+}
