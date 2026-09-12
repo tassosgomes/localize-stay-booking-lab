@@ -1,0 +1,177 @@
+# AsyncAPI da topologia de diagnóstico (task 8.0, V-05).
+#
+# Documenta a topologia REAL provada na task 6.0 (V-03), dentro do vhost
+# dedicado /localize-stay do broker compartilhado ecad-dev-rabbitmq:
+#   - exchange:    diagnostics.topic (topic, durable)
+#   - routing key: diagnostics.ping
+#   - fila:        notification.diagnostics (durable, quorum, com DLX/DLQ)
+#   - mensagem:    DiagnosticPing (+ envelope CloudEvents de Rmq.CloudEvents)
+#
+# Fonte no código:
+#   - services/booking/src/1-Services/LocalizeStay.Booking.Api/Messaging/DiagnosticsTopology.cs
+#   - services/booking/src/1-Services/LocalizeStay.Booking.Api/Messaging/DiagnosticPing.cs
+#   - services/booking/src/1-Services/LocalizeStay.Booking.Api/DiagnosticsEndpoints.cs
+#   - services/notification-worker/.../Messaging/DiagnosticsTopology.cs
+#   - services/notification-worker/.../Messaging/DiagnosticPingConsumer.cs
+#
+# Os PRDs de negócio devem seguir este mesmo padrão (<domínio>.<propósito>,
+# correlationId/causationId obrigatórios) para os eventos reais da saga
+# (PaymentRequested, PaymentAuthorized, ... — ADR-002).
+
+asyncapi: 3.1.0
+
+info:
+  title: Localize Stay — Diagnostics
+  version: 1.0.0
+  description: >-
+    Topologia de diagnóstico da fundação (V-03): o endpoint
+    POST /internal/diagnostics/ping do Booking publica um DiagnosticPing na
+    exchange diagnostics.topic; o Notification Worker consome da fila
+    notification.diagnostics, faz ACK em sucesso e NACK sem requeue após a
+    falha final (a mensagem cai na DLQ via DLX). Endpoint técnico, fora do
+    contrato público — remover ou isolar sob flag no primeiro PRD de Booking.
+
+servers:
+  rabbitmq:
+    host: ecad-dev-rabbitmq:5672
+    protocol: amqp
+    pathname: /localize-stay
+    description: >-
+      Broker compartilhado com o projeto ecad-sba; o Localize Stay usa o
+      vhost dedicado /localize-stay — nenhum recurso fora dele é declarado
+      ou consumido por este projeto.
+
+operations:
+  publishDiagnosticPing:
+    action: send
+    summary: Booking publica DiagnosticPing via POST /internal/diagnostics/ping
+    channel:
+      $ref: '#/channels/diagnosticsPublish'
+    messages:
+      - $ref: '#/channels/diagnosticsPublish/messages/diagnosticPing'
+    traits:
+      - $ref: '#/components/operationTraits/diagnosticsRetry'
+  consumeDiagnosticPing:
+    action: receive
+    summary: Notification Worker consome e faz ACK/NACK
+    channel:
+      $ref: '#/channels/diagnosticsConsume'
+    messages:
+      - $ref: '#/channels/diagnosticsConsume/messages/diagnosticPing'
+
+channels:
+  diagnosticsPublish:
+    address: diagnostics.ping
+    description: >-
+      Routing key diagnostics.ping publicada na exchange diagnostics.topic
+      (topic, durable). A fila notification.diagnostics tem binding para esta
+      exchange pela mesma routing key.
+    messages:
+      diagnosticPing:
+        $ref: '#/components/messages/diagnosticPing'
+    bindings:
+      amqp:
+        is: routingKey
+        exchange:
+          name: diagnostics.topic
+          type: topic
+          durable: true
+          autoDelete: false
+          vhost: /localize-stay
+        bindingVersion: 0.3.0
+  diagnosticsConsume:
+    address: notification.diagnostics
+    description: >-
+      Fila notification.diagnostics (durable, quorum, com DLX/DLQ — ver
+      operationTrait diagnosticsRetry) consumida pelo Notification Worker.
+    messages:
+      diagnosticPing:
+        $ref: '#/components/messages/diagnosticPing'
+    bindings:
+      amqp:
+        is: queue
+        queue:
+          name: notification.diagnostics
+          durable: true
+          exclusive: false
+          autoDelete: false
+          vhost: /localize-stay
+        bindingVersion: 0.3.0
+
+components:
+  messages:
+    diagnosticPing:
+      name: DiagnosticPing
+      title: DiagnosticPing
+      summary: >-
+        Mensagem de diagnóstico (V-03): prova topologia e correlação ponta a
+        ponta, sem semântica de negócio.
+      contentType: application/json
+      correlationId:
+        location: $message.header#/x-correlation-id
+        description: >-
+          Correlação ponta a ponta. O ping origina a cadeia:
+          causationId == correlationId na publicação.
+      headers:
+        type: object
+        required:
+          - x-correlation-id
+          - x-causation-id
+        properties:
+          x-correlation-id:
+            type: string
+            description: Correlation ID propagado em todo log de mensageria.
+          x-causation-id:
+            type: string
+            description: Causation ID (igual ao correlationId na origem).
+      payload:
+        type: object
+        required:
+          - pingId
+          - correlationId
+          - causationId
+          - sentAt
+        properties:
+          pingId:
+            type: string
+            format: uuid
+            description: Identificador único do ping.
+          correlationId:
+            type: string
+            format: uuid
+            description: Correlation ID (origina a cadeia de correlação).
+          causationId:
+            type: string
+            format: uuid
+            description: Causation ID (== correlationId na publicação).
+          sentAt:
+            type: string
+            format: date-time
+            description: Instante UTC de publicação.
+      traits:
+        - $ref: '#/components/messageTraits/cloudEventsEnvelope'
+      examples:
+        - name: diagnosticPingExample
+          summary: Exemplo de DiagnosticPing publicado pelo Booking
+          payload:
+            pingId: b3f1c2a9e4d34f6a8c1d2e5f7a9b0c1d
+            correlationId: c7d2e8f1a3b44c5d9e6f708192a3b4c5d
+            causationId: c7d2e8f1a3b44c5d9e6f708192a3b4c5d
+            sentAt: '2026-09-12T10:30:00Z'
+          headers:
+            x-correlation-id: c7d2e8f1a3b44c5d9e6f708192a3b4c5d
+            x-causation-id: c7d2e8f1a3b44c5d9e6f708192a3b4c5d
+  messageTraits:
+    cloudEventsEnvelope:
+      description: >-
+        Transporte via Rmq.CloudEvents: o payload viaja no campo `data` de um
+        envelope CloudEvents com type
+        `com.localizestay.diagnostics.ping.v1` e source `/booking`; os IDs de
+        correlação vão também nos headers AMQP x-correlation-id/x-causation-id.
+  operationTraits:
+    diagnosticsRetry:
+      description: >-
+        Retry com backoff exponencial + jitter (máx. 5 tentativas) em
+        processo; NACK sem requeue após a falha final — a mensagem cai na DLQ
+        notification.diagnostics.dlq via DLX notification.diagnostics.dlx;
+        NACK com requeue quando o desligamento interrompe o processamento.
