@@ -1,7 +1,7 @@
 namespace LocalizeStay.Notification.Worker.Messaging;
 
 /// <summary>
-/// Nomes da topologia de diagnóstico (V-03) dentro do vhost <c>/localize-stay</c>,
+/// Nomes da topologia de diagnóstico (V-03) dentro do vhost <c>localize-stay</c>,
 /// espelhando Booking. Os argumentos de declaração (quorum, DLX/DLQ, bindings)
 /// seguem as convenções de <c>Rmq.CloudEvents.Infrastructure.QueueManager</c>
 /// para que publisher (biblioteca) e consumer (este worker) interoperem sem

@@ -23,7 +23,7 @@ public sealed class WorkerDiagnosticsFactory : WebApplicationFactory<WorkerProgr
         Environment.SetEnvironmentVariable("RabbitMQ__Port", fixture.AmqpPort.ToString());
         Environment.SetEnvironmentVariable("RabbitMQ__UserName", "guest");
         Environment.SetEnvironmentVariable("RabbitMQ__Password", "guest");
-        Environment.SetEnvironmentVariable("RabbitMQ__VirtualHost", "/localize-stay");
+        Environment.SetEnvironmentVariable("RabbitMQ__VirtualHost", "localize-stay");
     }
 
     protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)

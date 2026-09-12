@@ -11,7 +11,7 @@ namespace LocalizeStay.Messaging.IntegrationTests;
 /// <summary>
 /// Fluxo de diagnóstico ponta a ponta (V-03): Booking publica
 /// <c>DiagnosticPing</c> na exchange <c>diagnostics.topic</c> do vhost
-/// <c>/localize-stay</c>; o Notification Worker consome da fila
+/// <c>localize-stay</c>; o Notification Worker consome da fila
 /// <c>notification.diagnostics</c>, faz ACK e loga com os mesmos
 /// <c>correlationId</c>/<c>causationId</c>.
 /// </summary>
@@ -136,7 +136,7 @@ public sealed class DiagnosticPingFlowTests(DiagnosticsFixture fixture)
             Port = _fixture.AmqpPort,
             UserName = "guest",
             Password = "guest",
-            VirtualHost = "/localize-stay",
+            VirtualHost = "localize-stay",
             ClientProvidedName = "diagnostic-ping-flow-tests"
         };
 
@@ -177,7 +177,7 @@ public sealed class DiagnosticPingFlowTests(DiagnosticsFixture fixture)
             Port = _fixture.AmqpPort,
             UserName = "guest",
             Password = "guest",
-            VirtualHost = "/localize-stay",
+            VirtualHost = "localize-stay",
             ClientProvidedName = "diagnostic-ping-flow-tests"
         };
 
@@ -245,7 +245,7 @@ public sealed class DiagnosticPingFlowTests(DiagnosticsFixture fixture)
             Port = _fixture.AmqpPort,
             UserName = "guest",
             Password = "guest",
-            VirtualHost = "/localize-stay",
+            VirtualHost = "localize-stay",
             ClientProvidedName = "diagnostic-ping-flow-tests"
         };
 

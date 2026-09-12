@@ -64,7 +64,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             _rabbitContainer.GetMappedPublicPort(5672).ToString());
         Environment.SetEnvironmentVariable("RabbitMQ__UserName", "guest");
         Environment.SetEnvironmentVariable("RabbitMQ__Password", "guest");
-        Environment.SetEnvironmentVariable("RabbitMQ__VirtualHost", "/localize-stay");
+        Environment.SetEnvironmentVariable("RabbitMQ__VirtualHost", "localize-stay");
     }
 
     public new async Task DisposeAsync()
@@ -105,12 +105,12 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         management.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
 
         using var vhostResponse = await management.PutAsync(
-            "api/vhosts/%2Flocalize-stay",
+            "api/vhosts/localize-stay",
             new StringContent("{}", Encoding.UTF8, "application/json"));
         vhostResponse.EnsureSuccessStatusCode();
 
         using var permissionsResponse = await management.PutAsync(
-            "api/permissions/%2Flocalize-stay/guest",
+            "api/permissions/localize-stay/guest",
             new StringContent(
                 """{"configure":".*","write":".*","read":".*"}""",
                 Encoding.UTF8,

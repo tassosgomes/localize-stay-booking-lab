@@ -1,7 +1,7 @@
 namespace LocalizeStay.Booking.Api.Messaging;
 
 /// <summary>
-/// Nomes da topologia de diagnóstico (V-03) dentro do vhost <c>/localize-stay</c>.
+/// Nomes da topologia de diagnóstico (V-03) dentro do vhost <c>localize-stay</c>.
 /// Espelhados pelo Notification Worker e cobertos pelo AsyncAPI da task 8.0;
 /// os PRDs de negócio seguem o mesmo padrão <c>&lt;domínio&gt;.&lt;propósito&gt;</c>.
 /// </summary>

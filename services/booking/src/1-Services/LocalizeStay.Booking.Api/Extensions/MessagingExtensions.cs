@@ -11,7 +11,7 @@ public static class MessagingExtensions
     /// Vhost dedicado do Localize Stay no broker compartilhado com o ecad-sba.
     /// Nenhum código do projeto declara ou consome recursos fora deste vhost.
     /// </summary>
-    public const string ExpectedVirtualHost = "/localize-stay";
+    public const string ExpectedVirtualHost = "localize-stay";
 
     public static IServiceCollection AddMessagingConfiguration(this IServiceCollection services, IConfiguration configuration)
     {

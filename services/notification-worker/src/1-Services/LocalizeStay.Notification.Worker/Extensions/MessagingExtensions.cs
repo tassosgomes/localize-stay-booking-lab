@@ -11,7 +11,7 @@ public static class MessagingExtensions
     /// Vhost dedicado do Localize Stay no broker compartilhado com o ecad-sba.
     /// Nenhum código do projeto declara ou consome recursos fora deste vhost.
     /// </summary>
-    public const string ExpectedVirtualHost = "/localize-stay";
+    public const string ExpectedVirtualHost = "localize-stay";
 
     /// <summary>
     /// Registra o <c>Rmq.CloudEvents</c> (publisher disponível para os PRDs futuros
