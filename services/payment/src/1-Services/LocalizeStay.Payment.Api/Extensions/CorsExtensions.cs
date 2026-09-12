@@ -8,18 +8,19 @@ public static class CorsExtensions
 {
     public const string DefaultPolicy = "Default";
 
+    // Origem do Vite dev server do frontend de teste (task 7.0 / V-04, ADR-003).
+    public const string FrontendDevOrigin = "http://localhost:5173";
+
     public static IServiceCollection AddCorsConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
         var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        var origins = allowedOrigins.Contains(FrontendDevOrigin) ? allowedOrigins : [.. allowedOrigins, FrontendDevOrigin];
 
         services.AddCors(options =>
         {
             options.AddPolicy(DefaultPolicy, policy =>
             {
-                if (allowedOrigins.Length > 0)
-                {
-                    policy.WithOrigins(allowedOrigins);
-                }
+                policy.WithOrigins(origins);
 
                 policy.AllowAnyMethod()
                     .AllowAnyHeader();

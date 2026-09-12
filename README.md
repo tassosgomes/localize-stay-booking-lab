@@ -130,3 +130,24 @@ dotnet user-secrets list \
 A senha é a definida pelo operador ao executar `db/bootstrap/002-roles.sql`
 (ver `db/bootstrap/README.md`). Em CI/deploy futuro, a mesma chave chega via
 variável de ambiente `ConnectionStrings__Catalog`.
+
+## Como rodar o frontend localmente
+
+Pré-requisitos: Node 24 + npm, e os 3 serviços rodando localmente (Catalog
+`:5101`, Booking `:5102`, Payment `:5103`). A tela busca `GET /health/ready`
+de cada serviço via `fetch` direto (CORS, sem gateway — ADR-003); os 3
+serviços já aceitam a origem `http://localhost:5173` via `CorsExtensions.cs`.
+
+```bash
+cd frontend/localize-stay-frontend
+npm install
+npm run dev   # abre em http://localhost:5173 — os 3 status aparecem "Healthy"
+```
+
+URLs dos backends vêm de `.env.development` (`VITE_CATALOG_URL`,
+`VITE_BOOKING_URL`, `VITE_PAYMENT_URL`). Teste focalizado (fetch mockado via
+MSW, sem precisar dos serviços reais):
+
+```bash
+npm run test -- ServiceStatus.test.tsx
+```
