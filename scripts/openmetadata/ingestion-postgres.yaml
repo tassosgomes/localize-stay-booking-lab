@@ -1,0 +1,58 @@
+# Config de ingestion do OpenMetadata (task 9.0, V-06) — versionada para
+# reprodutibilidade. Executada no próprio `ecad-dev-openmetadata` (UI ou
+# CLI `metadata ingest -c`), NÃO por este repositório.
+#
+# Escopo: connector Postgres consultando `postgres-main`, filtrado ao database
+# `localize_stay` (4 schemas: catalog, booking, payment, integration).
+# Credenciais SEMPRE via variável de ambiente no executor da ingestion
+# (nunca versionadas): OM_POSTGRES_PASSWORD. O usuário de ingestion tem escopo
+# de leitura.
+#
+# Manual (dono do homelab): após a ingestion, gerar no OpenMetadata o PAT de
+# escopo mínimo de escrita e rodar
+#   dotnet run --project scripts/openmetadata/register-rabbitmq -- --url <base>/api
+# (PAT via OPENMETADATA_PAT), depois confirmar na UI os 4 schemas + 3 serviços
+# de API (specs de V-05 em contracts/openapi/) + o CustomMessaging
+# `localize-stay-rabbitmq` com 2 tópicos, todos com a tag `localize-stay`.
+source:
+  type: postgres
+  serviceName: localize-stay-postgres
+  serviceConnection:
+    config:
+      type: Postgres
+      # Host/porta do postgres-main no `infra` (Coolify). Ajustar ao endereço
+      # real de rede do homelab; nunca localhost presumido.
+      hostPort: postgres-main:5432
+      username: openmetadata_reader
+      # Injetada no ambiente de execução — ver comentário no topo.
+      password: ${OM_POSTGRES_PASSWORD}
+      database: localize_stay
+      ingestAllDatabases: false
+  sourceConfig:
+    config:
+      # Filtra TUDO exceto o database do projeto (mesmo Postgres compartilhado
+      # hospeda outros projetos; o catálogo do ecad-sba não deve ser poluído).
+      databaseFilterPattern:
+        includes:
+          - localize_stay
+      schemaFilterPattern:
+        includes:
+          - catalog
+          - booking
+          - payment
+          - integration
+      # Só metadados (schemas/tabelas); sem profiler/lineage nesta fase.
+      includeTables: true
+      includeViews: true
+sink:
+  type: metadata-rest
+  config: {}
+workflowConfig:
+  openMetadataServerConfig:
+    # Base da API do ecad-dev-openmetadata; token via ambiente no executor.
+    hostPort: ${OM_SERVER_HOST_PORT}
+    authProvider: openmetadata
+    securityConfig:
+      jwtToken: ${OM_INGESTION_JWT}
+    # Toda entidade ingerida recebe a tag de ownership do projeto.
+    # (Aplicar também `localize-stay` como owner/team na UI após a ingestion.)

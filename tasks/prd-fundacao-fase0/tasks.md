@@ -93,15 +93,15 @@ efetivamente consumido, não ordem de aprendizado sugerida.
 
 ## Tarefas
 
-- [ ] 1.0 Convenções de solução compartilhadas (EN-01)
-- [ ] 2.0 Bootstrap de banco: database, roles, schemas e grants (EN-02)
-- [ ] 3.0 Catalog sobe e prova conexão real com Postgres (V-01)
-- [ ] 4.0 Booking sobe com o mesmo padrão de Catalog (V-02)
-- [ ] 5.0 Payment sobe com o mesmo padrão de Catalog (V-02)
-- [ ] 6.0 Mensageria de diagnóstico: Booking publica, Notification Worker consome (V-03)
-- [ ] 7.0 Frontend exibe status dos 3 serviços via CORS (V-04)
-- [ ] 8.0 Contratos exportados e validados: OpenAPI, AsyncAPI, Data Contract (V-05)
-- [ ] 9.0 Registro do vhost RabbitMQ como CustomMessaging no OpenMetadata (V-06)
+- [x] 1.0 Convenções de solução compartilhadas (EN-01)
+- [x] 2.0 Bootstrap de banco: database, roles, schemas e grants (EN-02)
+- [x] 3.0 Catalog sobe e prova conexão real com Postgres (V-01)
+- [x] 4.0 Booking sobe com o mesmo padrão de Catalog (V-02)
+- [x] 5.0 Payment sobe com o mesmo padrão de Catalog (V-02)
+- [x] 6.0 Mensageria de diagnóstico: Booking publica, Notification Worker consome (V-03)
+- [x] 7.0 Frontend exibe status dos 3 serviços via CORS (V-04)
+- [x] 8.0 Contratos exportados e validados: OpenAPI, AsyncAPI, Data Contract (V-05)
+- [x] 9.0 Registro do vhost RabbitMQ como CustomMessaging no OpenMetadata (V-06)
 
 ## Rastreabilidade Fatias TechSpec → Tasks
 

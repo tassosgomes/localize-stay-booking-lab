@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 slice_type: enabling
 verification_type: static
 parallelizable: false

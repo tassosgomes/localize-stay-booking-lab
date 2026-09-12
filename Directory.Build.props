@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- C# 14: versao do compilador do SDK .NET 10 confirmado no repositorio (dotnet 10.0.400). -->
+    <LangVersion>14</LangVersion>
+  </PropertyGroup>
+</Project>
