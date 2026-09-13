@@ -120,12 +120,24 @@ export default function ReservationLookupPage() {
   const invalid = status === 'invalid' && fieldError !== null;
 
   return (
-    <section aria-labelledby="reservation-lookup-title">
-      <h1 id="reservation-lookup-title">Consultar reserva</h1>
+    <section className="reservation-workspace" aria-labelledby="reservation-lookup-title">
+      <header className="reservation-workspace__header">
+        <h1 id="reservation-lookup-title" className="reservation-workspace__title">
+          Consultar reserva
+        </h1>
+        <p className="reservation-workspace__lead">
+          Informe o identificador da reserva para conferir o status atual, detalhes de pagamento e dados da hospedagem.
+        </p>
+      </header>
       {/* noValidate: validação custom acessível (aria-invalid/aria-describedby)
           substitui a nativa, cujos textos não são controláveis nem anunciados
           no resumo com foco. */}
-      <form onSubmit={(event) => void handleSubmit(event)} noValidate aria-label="Formulário de consulta de reserva">
+      <form
+        className="reservation-card reservation-lookup-form"
+        onSubmit={(event) => void handleSubmit(event)}
+        noValidate
+        aria-label="Formulário de consulta de reserva"
+      >
         {invalid ? (
           <FormErrorSummary
             ref={errorSummaryRef}
@@ -133,8 +145,10 @@ export default function ReservationLookupPage() {
             items={[{ label: FIELD_LABEL, message: fieldError }]}
           />
         ) : null}
-        <div>
-          <label htmlFor="reservationId">{FIELD_LABEL}</label>
+        <div className="reservation-form__group">
+          <label className="reservation-form__label" htmlFor="reservationId">
+            {FIELD_LABEL}
+          </label>
           <input
             id="reservationId"
             name="reservationId"
@@ -144,18 +158,22 @@ export default function ReservationLookupPage() {
             onChange={(event) => setReservationId(event.target.value)}
             aria-invalid={invalid ? true : undefined}
             aria-describedby={invalid ? 'reservationId-error' : undefined}
+            className={`reservation-form__input ${invalid ? 'reservation-form__input--error' : ''}`}
+            placeholder="Ex: 8f14e45f-ceea-467e-a5f0-3f9e6d3d0b1e"
           />
           {invalid ? (
-            <p id="reservationId-error">
+            <p id="reservationId-error" className="reservation-form__field-error">
               <strong>{FIELD_LABEL}:</strong> {fieldError}
             </p>
           ) : null}
         </div>
         {/* Apenas o botão é desabilitado durante a busca: a leitura/edição do
             campo permanece possível. */}
-        <button type="submit" disabled={searching}>
-          Buscar reserva
-        </button>
+        <div className="reservation-form__actions">
+          <button type="submit" className="reservation-button-primary" disabled={searching}>
+            Buscar reserva
+          </button>
+        </div>
       </form>
       {searching ? <OperationFeedback tone="neutral">{SEARCHING_MESSAGE}</OperationFeedback> : null}
       {status === 'notFound' ? <OperationFeedback tone="neutral">{NOT_FOUND_MESSAGE}</OperationFeedback> : null}

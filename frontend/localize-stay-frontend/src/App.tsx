@@ -41,56 +41,76 @@ export default function App() {
 
   const onReservations = pathname === '/reservations';
   const onReservationLookup = pathname === '/reservations/consultar';
+  const onProperties = pathname === '/properties';
+  const onStatus = pathname === '/';
 
   const navigation = (
-    <nav className="app-nav" aria-label="Navegação principal">
-      <a href="/" onClick={(event) => navigate(event, '/')}>
-        Service status
-      </a>
-      <a href="/properties" onClick={(event) => navigate(event, '/properties')}>
-        Cadastro de hospedagem
-      </a>
-      <a href="/reservations" onClick={(event) => navigate(event, '/reservations')}>
-        Solicitar reserva
-      </a>
-      <a href="/reservations/consultar" onClick={(event) => navigate(event, '/reservations/consultar')}>
-        Consultar reserva
-      </a>
-    </nav>
+    <header className="top-nav">
+      <div className="top-nav__container">
+        <a href="/" className="top-nav__brand" onClick={(event) => navigate(event, '/')}>
+          <svg
+            className="top-nav__brand-icon"
+            width="28"
+            height="28"
+            viewBox="0 0 32 32"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M16 3L3 13V28C3 28.5523 3.44772 29 4 29H11V19C11 17.8954 11.8954 17 13 17H19C20.1046 17 21 17.8954 21 19V29H28C28.5523 29 29 28.5523 29 28V13L16 3Z"
+              fill="var(--color-primary)"
+            />
+          </svg>
+          <span className="top-nav__brand-text">Localize Stay</span>
+        </a>
+        <nav className="app-nav top-nav__tabs" aria-label="Navegação principal">
+          <a
+            href="/properties"
+            className={`top-nav__tab ${onProperties ? 'top-nav__tab--active' : ''}`}
+            onClick={(event) => navigate(event, '/properties')}
+          >
+            Cadastro de hospedagem
+          </a>
+          <a
+            href="/reservations"
+            className={`top-nav__tab ${onReservations ? 'top-nav__tab--active' : ''}`}
+            onClick={(event) => navigate(event, '/reservations')}
+          >
+            Solicitar reserva
+          </a>
+          <a
+            href="/reservations/consultar"
+            className={`top-nav__tab ${onReservationLookup ? 'top-nav__tab--active' : ''}`}
+            onClick={(event) => navigate(event, '/reservations/consultar')}
+          >
+            Consultar reserva
+          </a>
+          <a
+            href="/"
+            className={`top-nav__tab ${onStatus ? 'top-nav__tab--active' : ''}`}
+            onClick={(event) => navigate(event, '/')}
+          >
+            Service status
+          </a>
+        </nav>
+      </div>
+    </header>
   );
 
-  if (pathname === '/properties') {
-    return (
-      <div className="app-shell">
-        {navigation}
-        <main>
-          <PropertyWorkspacePage />
-        </main>
-      </div>
-    );
-  }
-
   return (
-    <>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          padding: 'var(--space-base) var(--space-base) 0',
-        }}
-      >
-        {navigation}
-      </div>
-      <main
-        style={{
-          minHeight: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          padding: 'var(--space-section) var(--space-base)',
-        }}
-      >
-        {onReservations ? <ReservationRequestPage /> : onReservationLookup ? <ReservationLookupPage /> : <ServiceStatus />}
+    <div className="app-shell">
+      {navigation}
+      <main className="app-main">
+        {onReservations ? (
+          <ReservationRequestPage />
+        ) : onReservationLookup ? (
+          <ReservationLookupPage />
+        ) : onProperties ? (
+          <PropertyWorkspacePage />
+        ) : (
+          <ServiceStatus />
+        )}
       </main>
-    </>
+    </div>
   );
 }
