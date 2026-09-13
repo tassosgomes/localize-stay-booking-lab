@@ -1,0 +1,416 @@
+openapi: 3.1.0
+
+info:
+  title: "Booking - Consulta de Reserva API"
+  description: |
+    Contrato síncrono para a feature Booking F02 — Consulta de Reserva.
+
+    **Contrato gerado a partir do PRD:** `tasks/prd-consulta-reserva/prd.md`
+    **Data de geração:** 2026-09-12
+
+    ## Premissas Adotadas
+    - **Autenticação:** nenhuma na Fase 0 (`context/architecture-baseline.md` §Princípios de Segurança,
+      PD-002); a operação declara `security: []` explicitamente.
+    - **Versionamento:** prefixo de rota `/v1/`, consistente com o contrato de Booking F01
+      (`tasks/prd-solicitacao-reserva/api-contract.yaml`).
+    - **Identificador da Reservation:** `reservationId` como UUID — herda o mesmo identificador (`id`)
+      definido para a Reservation em Booking F01, conforme apontado nas Questões em Aberto do PRD desta
+      feature.
+    - **Moeda:** Real brasileiro (BRL) fixo em todo valor monetário (PD-001), mesma convenção de F01.
+    - **Valores monetários:** string decimal com 2 casas (ex.: `"350.00"`), nunca número de ponto
+      flutuante — mesma convenção de F01.
+    - **Nomenclatura:** `camelCase` nos campos JSON; paths em inglês, plural, kebab-case — mesma
+      convenção de F01.
+    - **Erros:** seguem RFC 9457 (Problem Details for HTTP APIs), `Content-Type: application/problem+json`;
+      o campo de extensão `code` carrega o motivo legível por máquina — mesma convenção de F01.
+    - **Situação da saga:** exposta no campo `sagaStatus`, com os três valores de negócio descritos no
+      PRD (pendente/autorizado/rejeitado); não representa o estado técnico interno da saga, apenas o
+      desfecho relevante para quem consulta (Termos Canônicos do PRD).
+    - **Identificador de correlação:** exposto no campo `correlationId` como UUID, para permitir
+      correlação manual com os logs do baseline (`context/architecture-baseline.md` §Padrões de
+      Observabilidade; DP-02 do PRD).
+    - **Motivo de cancelamento:** campo `cancellationReason` nullable, presente apenas quando
+      `status = cancelada`; na Fase 0 reflete exclusivamente a rejeição de pagamento (RN-08), única causa
+      de cancelamento em escopo — ver Questões em Aberto deste contrato.
+    - **Escopo:** este documento cobre apenas `GET /reservations/{reservationId}` (Booking F02). Os
+      demais schemas de Reservation espelham os campos definidos em F01, sem alterá-los, e incluem os
+      três campos adicionais desta feature (`sagaStatus`, `correlationId`, `cancellationReason`).
+  version: "1.0.0"
+  contact:
+    name: "Domínio Booking — Localize Stay Booking Lab"
+
+servers:
+  - url: http://localhost:5000/v1
+    description: Booking — desenvolvimento local
+
+tags:
+  - name: Reservations
+    description: >-
+      Consulta do estado consolidado de uma Reservation e da situação de sua Saga (Booking F02).
+      Consumida pelo frontend de teste.
+
+# ─── Paths ───────────────────────────────────────────────────────────────────
+paths:
+
+  /reservations/{reservationId}:
+    get:
+      summary: Consultar reserva por identificador
+      description: |
+        Um solicitante informa o identificador de uma Reservation e recebe seus dados congelados
+        (Accommodation e Guest de referência, período, hóspedes, preço, moeda e total), o estado atual
+        do ciclo de vida (`solicitada`/`confirmada`/`cancelada`), a situação observável da saga de
+        pagamento (`sagaStatus`), o identificador de correlação e, quando cancelada, o motivo do
+        cancelamento. Operação somente leitura: não altera nenhum estado da Reservation ou da Saga.
+        Como a Fase 0 não implementa autenticação/autorização (PD-002), qualquer solicitante que conheça
+        o identificador pode consultá-lo.
+      operationId: getReservationById
+      tags:
+        - Reservations
+      security: []
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          description: Identificador único da Reservation, recebido na resposta de F01 (Solicitação de Reserva).
+          schema:
+            type: string
+            format: uuid
+            examples:
+              - "8f14e45f-ceea-467e-a5f0-3f9e6d3d0b1e"
+      responses:
+        "200":
+          description: >-
+            Reservation encontrada; corpo traz os dados congelados, o estado atual e a situação
+            observável da saga.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReservationDetailResponse"
+              examples:
+                pagamentoPendente:
+                  summary: Reservation solicitada, saga aguardando resultado do pagamento (antes de F03/F04)
+                  value:
+                    id: "8f14e45f-ceea-467e-a5f0-3f9e6d3d0b1e"
+                    accommodationId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    guestReference: "guest-marina-alves"
+                    checkIn: "2026-10-10"
+                    checkOut: "2026-10-13"
+                    guestsCount: 2
+                    status: "solicitada"
+                    pricePerNight: "350.00"
+                    currency: "BRL"
+                    totalAmount: "1050.00"
+                    createdAt: "2026-09-12T14:22:00Z"
+                    sagaStatus: "pendente"
+                    correlationId: "b2c4e6a8-1234-4abc-9def-0123456789ab"
+                    cancellationReason: null
+                confirmadaPagamentoAutorizado:
+                  summary: Reservation confirmada após autorização do pagamento (F04)
+                  value:
+                    id: "8f14e45f-ceea-467e-a5f0-3f9e6d3d0b1e"
+                    accommodationId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    guestReference: "guest-marina-alves"
+                    checkIn: "2026-10-10"
+                    checkOut: "2026-10-13"
+                    guestsCount: 2
+                    status: "confirmada"
+                    pricePerNight: "350.00"
+                    currency: "BRL"
+                    totalAmount: "1050.00"
+                    createdAt: "2026-09-12T14:22:00Z"
+                    sagaStatus: "autorizado"
+                    correlationId: "b2c4e6a8-1234-4abc-9def-0123456789ab"
+                    cancellationReason: null
+                canceladaPagamentoRejeitado:
+                  summary: Reservation cancelada após rejeição do pagamento (F04)
+                  value:
+                    id: "8f14e45f-ceea-467e-a5f0-3f9e6d3d0b1e"
+                    accommodationId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    guestReference: "guest-marina-alves"
+                    checkIn: "2026-10-10"
+                    checkOut: "2026-10-13"
+                    guestsCount: 2
+                    status: "cancelada"
+                    pricePerNight: "350.00"
+                    currency: "BRL"
+                    totalAmount: "1050.00"
+                    createdAt: "2026-09-12T14:22:00Z"
+                    sagaStatus: "rejeitado"
+                    correlationId: "b2c4e6a8-1234-4abc-9def-0123456789ab"
+                    cancellationReason: "Pagamento rejeitado pela simulação de Payment."
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/ReservationNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      x-frontend-notes: >-
+        Distinga sempre 400 (identificador em formato inválido — oriente o usuário a conferir o link
+        recebido) de 404 (identificador bem formado mas inexistente — exiba "reserva não encontrada").
+        Nenhuma atualização automática: para refletir uma mudança de estado da saga, o frontend deve
+        consultar novamente (sem polling automático nesta feature). Exiba `cancellationReason` apenas
+        quando `status = cancelada`.
+      x-backend-notes: >-
+        Leitura pura sobre o estado já persistido por F01/F03/F04; não inicia, avança nem compensa a
+        saga (RF-01, non-goals do PRD). `sagaStatus` deve ser derivado do estado observável da
+        Reservation Saga, nunca inferido a partir de `status` da Reservation isoladamente — os dois
+        campos são preenchidos a partir da mesma leitura consistente para evitar combinações
+        inválidas (ex.: `status=confirmada` com `sagaStatus=pendente`).
+
+# ─── Components ──────────────────────────────────────────────────────────────
+components:
+
+  responses:
+    BadRequest:
+      description: >-
+        `reservationId` ausente, vazio ou fora do formato esperado (não é uma rejeição de regra de
+        negócio nem "Reservation não encontrada").
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+          examples:
+            identificadorInvalido:
+              summary: reservationId fora do formato UUID esperado
+              value:
+                type: "https://localize-stay.lab/problems/validation-error"
+                title: "Requisição inválida"
+                status: 400
+                detail: "O identificador informado não está em um formato válido."
+                instance: "/v1/reservations/nao-e-um-uuid"
+                code: "VALIDATION_ERROR"
+
+    ReservationNotFound:
+      description: >-
+        Nenhuma Reservation existe com o `reservationId` informado. Distinto conceitualmente de 400 —
+        o identificador é bem formado, mas não corresponde a um registro existente.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+          examples:
+            naoEncontrada:
+              summary: Reservation inexistente
+              value:
+                type: "https://localize-stay.lab/problems/reservation-not-found"
+                title: "Reservation não encontrada"
+                status: 404
+                detail: "Nenhuma Reservation existe com o identificador informado."
+                instance: "/v1/reservations/8f14e45f-ceea-467e-a5f0-3f9e6d3d0b1e"
+                code: "RESERVATION_NOT_FOUND"
+
+    InternalServerError:
+      description: Erro interno inesperado do servidor.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+          examples:
+            erroInterno:
+              summary: Erro inesperado
+              value:
+                type: "about:blank"
+                title: "Erro interno"
+                status: 500
+                detail: "Ocorreu um erro interno. Tente novamente mais tarde."
+                instance: "/v1/reservations/8f14e45f-ceea-467e-a5f0-3f9e6d3d0b1e"
+                code: "INTERNAL_ERROR"
+                traceId: "abc123xyz"
+
+  schemas:
+
+    # ── Entidade principal (leitura) ──
+    ReservationDetail:
+      type: object
+      description: >-
+        Estado consolidado de uma Reservation para consulta (Booking F02): dados congelados por F01,
+        estado do ciclo de vida e situação observável da saga de pagamento. Mesmos campos base de
+        `Reservation` em F01, acrescidos dos campos de saga desta feature.
+      required:
+        - id
+        - accommodationId
+        - guestReference
+        - checkIn
+        - checkOut
+        - guestsCount
+        - status
+        - pricePerNight
+        - currency
+        - totalAmount
+        - createdAt
+        - sagaStatus
+        - correlationId
+        - cancellationReason
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identificador único da Reservation.
+          examples:
+            - "8f14e45f-ceea-467e-a5f0-3f9e6d3d0b1e"
+        accommodationId:
+          type: string
+          format: uuid
+          description: Identificador da Accommodation reservada, referenciado a Catalog.
+          examples:
+            - "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        guestReference:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: >-
+            Guest de referência — identificador informado por quem solicitou a Reservation, sem
+            autenticação nem validação de identidade real na Fase 0 (PD-002).
+          examples:
+            - "guest-marina-alves"
+        checkIn:
+          type: string
+          format: date
+          description: Data de check-in (início do período, inclusivo), congelada na solicitação.
+          examples:
+            - "2026-10-10"
+        checkOut:
+          type: string
+          format: date
+          description: Data de check-out (fim do período, exclusivo), congelada na solicitação.
+          examples:
+            - "2026-10-13"
+        guestsCount:
+          type: integer
+          minimum: 1
+          description: Quantidade de hóspedes da reserva, congelada na solicitação.
+          examples:
+            - 2
+        status:
+          type: string
+          enum: [solicitada, confirmada, cancelada]
+          description: |
+            Estado atual da Reservation no ciclo de vida da saga (`domains/booking/domain.md`):
+            - `solicitada`: aguardando o resultado do pagamento (F03/F04 ainda não concluíram).
+            - `confirmada`: estado terminal após autorização de pagamento (RN-07).
+            - `cancelada`: estado terminal após rejeição de pagamento (RN-08).
+            Uma vez terminal, o estado nunca regride nem alterna entre os dois terminais (RN-11).
+          examples:
+            - "solicitada"
+        pricePerNight:
+          type: string
+          description: >-
+            Preço por noite congelado no momento da solicitação (RN-05), nunca recalculado nesta
+            consulta. String decimal com 2 casas.
+          examples:
+            - "350.00"
+        currency:
+          type: string
+          enum: [BRL]
+          description: Moeda do laboratório, fixa em Real brasileiro (PD-001).
+          examples:
+            - "BRL"
+        totalAmount:
+          type: string
+          description: >-
+            Valor total congelado (RN-06), nunca recalculado nesta consulta. String decimal com 2
+            casas.
+          examples:
+            - "1050.00"
+        createdAt:
+          type: string
+          format: date-time
+          description: Data e hora de criação da Reservation (ISO 8601).
+          examples:
+            - "2026-09-12T14:22:00Z"
+        sagaStatus:
+          type: string
+          enum: [pendente, autorizado, rejeitado]
+          description: |
+            Situação observável da Reservation Saga do ponto de vista de negócio (Termos Canônicos do
+            PRD de F02) — não é o estado técnico interno da saga:
+            - `pendente`: aguardando o resultado do pagamento.
+            - `autorizado`: pagamento autorizado; corresponde a `status = confirmada` (RN-07).
+            - `rejeitado`: pagamento rejeitado; corresponde a `status = cancelada` (RN-08).
+          examples:
+            - "pendente"
+        correlationId:
+          type: string
+          format: uuid
+          description: >-
+            Identificador de correlação da Reservation Saga, usado para correlacionar manualmente com
+            os logs do baseline (`correlationId`/`causationId`, DP-02 do PRD).
+          examples:
+            - "b2c4e6a8-1234-4abc-9def-0123456789ab"
+        cancellationReason:
+          type: [string, "null"]
+          description: >-
+            Motivo do cancelamento; presente apenas quando `status = cancelada`, `null` em qualquer
+            outro estado. Na Fase 0, reflete exclusivamente a rejeição de pagamento (RN-08) — não há
+            cancelamento voluntário em escopo.
+          examples:
+            - "Pagamento rejeitado pela simulação de Payment."
+
+    ReservationDetailResponse:
+      type: object
+      description: Response da consulta de uma Reservation existente por identificador (Booking F02).
+      allOf:
+        - $ref: "#/components/schemas/ReservationDetail"
+
+    # ── Erros (RFC 9457 — Problem Details) ──
+    ProblemDetails:
+      type: object
+      description: >-
+        Formato de erro padrão (RFC 9457), usado em toda resposta 4xx/5xx deste contrato, com
+        `Content-Type: application/problem+json` — mesma convenção do contrato de Booking F01.
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI estável que identifica o tipo do problema; `about:blank` para erros genéricos.
+          examples:
+            - "https://localize-stay.lab/problems/reservation-not-found"
+        title:
+          type: string
+          description: Resumo curto e legível por humano do problema.
+          examples:
+            - "Reservation não encontrada"
+        status:
+          type: integer
+          description: Código de status HTTP repetido no corpo, igual ao da resposta.
+          examples:
+            - 404
+        detail:
+          type:
+            - string
+            - "null"
+          description: Explicação específica desta ocorrência do problema.
+          examples:
+            - "Nenhuma Reservation existe com o identificador informado."
+        instance:
+          type:
+            - string
+            - "null"
+          description: URI que identifica esta ocorrência específica do problema.
+          examples:
+            - "/v1/reservations/8f14e45f-ceea-467e-a5f0-3f9e6d3d0b1e"
+        code:
+          type:
+            - string
+            - "null"
+          enum:
+            - VALIDATION_ERROR
+            - RESERVATION_NOT_FOUND
+            - INTERNAL_ERROR
+          description: >-
+            Extensão de RFC 9457: código legível por máquina, estável entre versões, usado pelo
+            frontend para distinguir "entrada inválida" de "não encontrada" sem parsing de
+            `title`/`detail`.
+          examples:
+            - "RESERVATION_NOT_FOUND"
+        traceId:
+          type:
+            - string
+            - "null"
+          description: Identificador de rastreamento para depuração, presente em erros 5xx.
+          examples:
+            - "abc123xyz"
