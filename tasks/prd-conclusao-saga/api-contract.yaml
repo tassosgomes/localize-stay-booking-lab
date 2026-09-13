@@ -1,0 +1,602 @@
+# Contrato assíncrono (AsyncAPI) para a feature Booking F04 — Conclusão da Saga.
+#
+# Nota de escopo desta skill: tsg-flow-contract-creator gera OpenAPI/REST por padrão. F04 não introduz
+# nenhum endpoint HTTP (PRD, Restrições Técnicas de Alto Nível) — é inteiramente orientada a evento via
+# RabbitMQ (ADR-002). Por decisão explícita do usuário (mesma decisão já tomada para
+# tasks/prd-solicitacao-pagamento/api-contract.yaml, feature também 100% orientada a evento), este
+# contrato foi gerado em AsyncAPI 3.1, seguindo o padrão já estabelecido em
+# contracts/asyncapi/diagnostics-v1.yaml e em tasks/prd-solicitacao-pagamento/api-contract.yaml (mesmo
+# broker/vhost, mesma convenção de correlationId/causationId e envelope CloudEvents).
+#
+# Diferença estrutural em relação a F03: F04 tem operações nos dois sentidos — Booking CONSOME
+# (`receive`) payment.payment_authorized/payment.payment_rejected (publicados por Payment) e PUBLICA
+# (`send`) booking.reservation_confirmed/booking.reservation_cancelled (consumidos por Catalog e
+# Notification). O lado de consumo segue o mesmo padrão de canal duplo (exchange do produtor + fila
+# própria do consumidor) já provado em contracts/asyncapi/diagnostics-v1.yaml
+# (diagnostics.topic → notification.diagnostics).
+
+asyncapi: 3.1.0
+
+info:
+  title: "Booking - Conclusão da Saga"
+  description: |
+    Contrato assíncrono para a feature Booking F04 — Conclusão da Saga (RF-01, RF-02, RF-03).
+
+    **Contrato gerado a partir do PRD:** `tasks/prd-conclusao-saga/prd.md`
+    **Data de geração:** 2026-09-12
+
+    ## Premissas Adotadas
+    - **Protocolo:** RabbitMQ/AMQP (ADR-002), no vhost dedicado `/localize-stay` do broker
+      compartilhado `ecad-dev-rabbitmq` — mesma topologia de
+      `contracts/asyncapi/diagnostics-v1.yaml` e `tasks/prd-solicitacao-pagamento/api-contract.yaml`.
+    - **Versionamento:** versão embutida no tipo do evento (`ReservationConfirmed.v1`,
+      `ReservationCancelled.v1`), conforme `context/architecture-baseline.md` §Padrões de Comunicação.
+    - **Exchange/routing key:** modelados 1:1 com o evento (ADR-002), convenção `<domínio>.<propósito>`
+      (`domains/booking/domain.md` §7). Publicação: exchange topic `booking.reservation_confirmed` /
+      `booking.reservation_cancelled`, routing key idêntica ao nome do evento — mesmo padrão de
+      `booking.payment_requested` (F03). Consumo: Booking declara sua própria fila
+      (`booking.payment_authorized` / `booking.payment_rejected`) com binding para a exchange mantida
+      por Payment (mesmo nome do evento, mesma convenção 1:1), replicando o padrão comprovado
+      `diagnostics.topic` → `notification.diagnostics` de `contracts/asyncapi/diagnostics-v1.yaml`.
+    - **Contrato de consumo é provisório quanto ao produtor (Payment):** o domínio Payment ainda não
+      tem `domain.md` nem contrato AsyncAPI próprio nesta etapa (PRD, Questões em Aberto) — mesma
+      natureza de rascunho que o endpoint de Catalog em
+      `tasks/prd-solicitacao-reserva/api-contract.yaml` teve para F01, até Catalog formalizar F04
+      (Consulta de Disponibilidade). O schema de `payment.payment_authorized`/`payment.payment_rejected`
+      abaixo declara **apenas** o piso que o baseline já exige de todo evento da saga
+      (`correlationId`/`causationId` — `context/architecture-baseline.md` §Padrões de Comunicação) mais
+      um timestamp de decisão; Booking trata qualquer campo além desses de forma defensiva (ignora sem
+      falhar), conforme a Questão em Aberto do PRD. Quando Payment formalizar seu próprio contrato, este
+      documento deve ser revisado para refletir o schema real publicado.
+    - **Moeda:** Real brasileiro (BRL) fixo em todo valor monetário (PD-001) — não aparece nos eventos
+      desta feature (ver decisão de minimização de payload abaixo).
+    - **Identificador de correlação:** `correlationId` é o identificador da Reservation Saga
+      (`domains/booking/domain.md` §3), o mesmo valor exposto por Booking F02 no campo `correlationId`
+      e usado por F03 em `booking.payment_requested` — não é reintroduzido aqui, é reutilizado.
+    - **Causation:** `payment.payment_authorized`/`payment.payment_rejected` ainda não define um
+      identificador de evento distinto do `correlationId` (Payment não tem contrato próprio) — por
+      isso, ao publicar `booking.reservation_confirmed`/`booking.reservation_cancelled`, Booking usa
+      `causationId == correlationId` (mesma convenção de auto-causação já usada quando não há um
+      identificador de evento causador distinto, ver `diagnosticPing` e `paymentRequested`). Revisar
+      quando Payment definir um identificador de evento próprio.
+    - **Minimização de payload (Restrições Técnicas do PRD):** os eventos publicados carregam apenas o
+      que Catalog (criar/remover Availability Block) e Notification (identificar a quem e o quê
+      notificar) precisam — `reservationId`, `accommodationId`, `guestReference`, `checkIn`, `checkOut`
+      e, em `reservation_cancelled`, `cancellationReason`. Não incluem `totalAmount`/`currency`
+      (nenhum dos dois domínios consumidores precisa de valor monetário para agir) nem qualquer detalhe
+      interno do processamento de Payment.
+    - **Motivo de cancelamento (DP-01 do PRD):** `cancellationReason` reflete o fato de negócio
+      "pagamento rejeitado" em linguagem própria de Booking, nunca o payload técnico recebido de
+      Payment — mesmo texto de exemplo já usado em `tasks/prd-consulta-reserva/api-contract.yaml`
+      (`"Pagamento rejeitado pela simulação de Payment."`).
+    - **Valores monetários:** não aplicável nesta feature (ver minimização de payload acima).
+    - **Nomenclatura:** `camelCase` nos campos do payload, mesma convenção de F01/F02/F03.
+    - **Isolamento de eventos não correlacionáveis/tardios (DP-02, DP-03 do PRD):** decisões de
+      comportamento do consumidor (ignorar e logar, sem NACK nem retry) pertencem à TechSpec de
+      implementação, não ao contrato — o contrato descreve apenas a forma da mensagem trocada.
+    - **Retry/DLQ das filas de consumo são comportamento padrão já adotado da biblioteca, não uma
+      entrega nova desta feature:** as filas `booking.payment_authorized`/`booking.payment_rejected`
+      são declaradas via o mesmo mecanismo já em uso desde a fundação
+      (`Rmq.CloudEvents`/`AddRmqTopicConsumer`), que aplica retry exponencial (Polly, mesma política
+      `DefaultRetry` já configurada em `MessagingExtensions` para publicação) e DLQ automática
+      (`<queue>.dlq`) por padrão da biblioteca — não é um dedup store, Outbox, alerta ou reprocessamento
+      manual (isso sim pertence à F06, Não-Objetivos do PRD). Uma mensagem só chega à DLQ após falha
+      técnica não tratada (ex.: banco indisponível); os caminhos de negócio "não correlacionável" e
+      "saga já terminal" (DP-02, DP-03) não lançam exceção e nunca chegam à DLQ.
+    - **Escopo:** este documento cobre o consumo (`receive`) de `payment.payment_authorized` e
+      `payment.payment_rejected` por Booking, e a publicação (`send`) de
+      `booking.reservation_confirmed` e `booking.reservation_cancelled` por Booking (RF-01, RF-02).
+      Não cobre o lado de publicação de Payment (fora do escopo desta feature e sem contrato próprio
+      ainda) nem o lado de consumo de Catalog/Notification (decisão das próprias features desses
+      domínios, como já registrado em `tasks/prd-solicitacao-pagamento/api-contract.yaml` para
+      `booking.payment_requested`).
+  version: "1.0.0"
+  contact:
+    name: "Domínio Booking — Localize Stay Booking Lab"
+
+servers:
+  rabbitmq:
+    host: ecad-dev-rabbitmq:5672
+    protocol: amqp
+    pathname: /localize-stay
+    description: >-
+      Broker compartilhado com o projeto ecad-sba; o Localize Stay usa o vhost dedicado
+      /localize-stay — nenhum recurso fora dele é declarado ou consumido por este projeto (mesmo
+      broker de `contracts/asyncapi/diagnostics-v1.yaml` e `tasks/prd-solicitacao-pagamento/api-contract.yaml`).
+
+operations:
+  consumePaymentAuthorized:
+    action: receive
+    summary: Booking consome PaymentAuthorized.v1 e confirma a Reservation correspondente (RF-01)
+    description: |
+      Booking mantém uma fila própria (`booking.payment_authorized`) ligada à exchange mantida por
+      Payment. Ao consumir uma mensagem correlacionada a uma Reservation Saga que ainda aguarda
+      resultado, Booking confirma a Reservation e publica `booking.reservation_confirmed` (RN-07).
+      Mensagens não correlacionáveis ou correlacionadas a uma saga já terminal são ignoradas para fins
+      de negócio (RN-11) — comportamento detalhado na TechSpec, não neste contrato.
+    channel:
+      $ref: '#/channels/paymentAuthorizedConsume'
+    messages:
+      - $ref: '#/channels/paymentAuthorizedConsume/messages/paymentAuthorized'
+  consumePaymentRejected:
+    action: receive
+    summary: Booking consome PaymentRejected.v1 e cancela a Reservation correspondente (RF-02)
+    description: |
+      Booking mantém uma fila própria (`booking.payment_rejected`) ligada à exchange mantida por
+      Payment. Ao consumir uma mensagem correlacionada a uma Reservation Saga que ainda aguarda
+      resultado, Booking cancela a Reservation com um motivo de negócio e publica
+      `booking.reservation_cancelled` (RN-08). Mensagens não correlacionáveis ou correlacionadas a uma
+      saga já terminal são ignoradas para fins de negócio (RN-11) — comportamento detalhado na
+      TechSpec, não neste contrato.
+    channel:
+      $ref: '#/channels/paymentRejectedConsume'
+    messages:
+      - $ref: '#/channels/paymentRejectedConsume/messages/paymentRejected'
+  publishReservationConfirmed:
+    action: send
+    summary: Booking publica ReservationConfirmed.v1 após confirmar a Reservation (RF-01)
+    description: |
+      Disparado automaticamente ao concluir a transição para `confirmada` (RN-07, RN-10). Habilita
+      Catalog a criar o Availability Block e Notification a avisar as partes interessadas.
+    channel:
+      $ref: '#/channels/reservationConfirmedPublish'
+    messages:
+      - $ref: '#/channels/reservationConfirmedPublish/messages/reservationConfirmed'
+  publishReservationCancelled:
+    action: send
+    summary: Booking publica ReservationCancelled.v1 após cancelar a Reservation (RF-02)
+    description: |
+      Disparado automaticamente ao concluir a transição para `cancelada` (RN-08, RN-10). Carrega o
+      motivo de negócio do cancelamento (DP-01). Habilita Catalog a manter o Availability Block livre
+      e Notification a avisar as partes interessadas.
+    channel:
+      $ref: '#/channels/reservationCancelledPublish'
+    messages:
+      - $ref: '#/channels/reservationCancelledPublish/messages/reservationCancelled'
+
+channels:
+  paymentAuthorizedConsume:
+    address: booking.payment_authorized
+    description: >-
+      Fila própria de Booking (durable; DLQ `booking.payment_authorized.dlq` provisionada
+      automaticamente pela biblioteca — ver premissa "Retry/DLQ das filas de consumo"), com binding
+      pela routing key payment.payment_authorized à exchange topic payment.payment_authorized
+      (durable), mantida por Payment. Contrato de consumo provisório — ver premissa "Contrato de
+      consumo é provisório quanto ao produtor".
+    messages:
+      paymentAuthorized:
+        $ref: '#/components/messages/paymentAuthorized'
+    bindings:
+      amqp:
+        is: queue
+        queue:
+          name: booking.payment_authorized
+          durable: true
+          exclusive: false
+          autoDelete: false
+          vhost: /localize-stay
+        bindingVersion: 0.3.0
+  paymentRejectedConsume:
+    address: booking.payment_rejected
+    description: >-
+      Fila própria de Booking (durable; DLQ `booking.payment_rejected.dlq` provisionada
+      automaticamente pela biblioteca — ver premissa "Retry/DLQ das filas de consumo"), com binding
+      pela routing key payment.payment_rejected à exchange topic payment.payment_rejected
+      (durable), mantida por Payment. Contrato de consumo provisório — ver premissa "Contrato de
+      consumo é provisório quanto ao produtor".
+    messages:
+      paymentRejected:
+        $ref: '#/components/messages/paymentRejected'
+    bindings:
+      amqp:
+        is: queue
+        queue:
+          name: booking.payment_rejected
+          durable: true
+          exclusive: false
+          autoDelete: false
+          vhost: /localize-stay
+        bindingVersion: 0.3.0
+  reservationConfirmedPublish:
+    address: booking.reservation_confirmed
+    description: >-
+      Routing key booking.reservation_confirmed publicada na exchange booking.reservation_confirmed
+      (topic, durable) — exchange modelada 1:1 com o evento, conforme ADR-002. O binding de fila para
+      consumo por Catalog e Notification é definido pela própria feature de cada domínio consumidor.
+    messages:
+      reservationConfirmed:
+        $ref: '#/components/messages/reservationConfirmed'
+    bindings:
+      amqp:
+        is: routingKey
+        exchange:
+          name: booking.reservation_confirmed
+          type: topic
+          durable: true
+          autoDelete: false
+          vhost: /localize-stay
+        bindingVersion: 0.3.0
+  reservationCancelledPublish:
+    address: booking.reservation_cancelled
+    description: >-
+      Routing key booking.reservation_cancelled publicada na exchange booking.reservation_cancelled
+      (topic, durable) — exchange modelada 1:1 com o evento, conforme ADR-002. O binding de fila para
+      consumo por Catalog e Notification é definido pela própria feature de cada domínio consumidor.
+    messages:
+      reservationCancelled:
+        $ref: '#/components/messages/reservationCancelled'
+    bindings:
+      amqp:
+        is: routingKey
+        exchange:
+          name: booking.reservation_cancelled
+          type: topic
+          durable: true
+          autoDelete: false
+          vhost: /localize-stay
+        bindingVersion: 0.3.0
+
+components:
+  messages:
+    paymentAuthorized:
+      name: PaymentAuthorized
+      title: PaymentAuthorized.v1
+      summary: >-
+        Resultado de autorização de pagamento para uma Reservation, publicado por Payment (RF-01).
+        Schema provisório — ver premissa "Contrato de consumo é provisório quanto ao produtor".
+      contentType: application/json
+      correlationId:
+        location: $message.header#/x-correlation-id
+        description: >-
+          Correlação ponta a ponta com a Reservation Saga que solicitou o pagamento (F03).
+      headers:
+        type: object
+        required:
+          - x-correlation-id
+          - x-causation-id
+        properties:
+          x-correlation-id:
+            type: string
+            description: Correlation ID propagado em todo log de mensageria (mesmo valor do payload).
+          x-causation-id:
+            type: string
+            description: Causation ID do lado de Payment (opaco para Booking nesta fase).
+      payload:
+        type: object
+        required:
+          - correlationId
+        properties:
+          correlationId:
+            type: string
+            format: uuid
+            description: >-
+              Identificador da Reservation Saga que solicitou o pagamento (o mesmo publicado por
+              Booking em `booking.payment_requested`, F03) — único campo do payload do qual Booking
+              depende para localizar a saga correspondente (RN-07).
+            examples:
+              - "b2c4e6a8-1234-4abc-9def-0123456789ab"
+          authorizedAt:
+            type: string
+            format: date-time
+            description: >-
+              Instante em que Payment decidiu a autorização, se publicado. Campo informativo — Booking
+              não depende dele para a transição (usa seu próprio `DateTime.UtcNow` ao confirmar).
+            examples:
+              - "2026-09-12T14:25:10Z"
+      traits:
+        - $ref: '#/components/messageTraits/cloudEventsEnvelope'
+      examples:
+        - name: paymentAuthorizedExample
+          summary: >-
+            Autorização para a mesma Reservation Saga do exemplo "paymentRequestedExample" de
+            `tasks/prd-solicitacao-pagamento/api-contract.yaml`.
+          payload:
+            correlationId: "b2c4e6a8-1234-4abc-9def-0123456789ab"
+            authorizedAt: "2026-09-12T14:25:10Z"
+          headers:
+            x-correlation-id: "b2c4e6a8-1234-4abc-9def-0123456789ab"
+            x-causation-id: "b2c4e6a8-1234-4abc-9def-0123456789ab"
+
+    paymentRejected:
+      name: PaymentRejected
+      title: PaymentRejected.v1
+      summary: >-
+        Resultado de rejeição de pagamento para uma Reservation, publicado por Payment (RF-02).
+        Schema provisório — ver premissa "Contrato de consumo é provisório quanto ao produtor". Um
+        eventual campo técnico de motivo (ex.: `reason`) que Payment venha a incluir é tratado como
+        opaco por Booking (DP-01 do PRD) — não é lido nem propagado.
+      contentType: application/json
+      correlationId:
+        location: $message.header#/x-correlation-id
+        description: >-
+          Correlação ponta a ponta com a Reservation Saga que solicitou o pagamento (F03).
+      headers:
+        type: object
+        required:
+          - x-correlation-id
+          - x-causation-id
+        properties:
+          x-correlation-id:
+            type: string
+            description: Correlation ID propagado em todo log de mensageria (mesmo valor do payload).
+          x-causation-id:
+            type: string
+            description: Causation ID do lado de Payment (opaco para Booking nesta fase).
+      payload:
+        type: object
+        required:
+          - correlationId
+        properties:
+          correlationId:
+            type: string
+            format: uuid
+            description: >-
+              Identificador da Reservation Saga que solicitou o pagamento (o mesmo publicado por
+              Booking em `booking.payment_requested`, F03) — único campo do payload do qual Booking
+              depende para localizar a saga correspondente (RN-08).
+            examples:
+              - "b2c4e6a8-1234-4abc-9def-0123456789ab"
+          rejectedAt:
+            type: string
+            format: date-time
+            description: >-
+              Instante em que Payment decidiu a rejeição, se publicado. Campo informativo — Booking
+              não depende dele para a transição (usa seu próprio `DateTime.UtcNow` ao cancelar).
+            examples:
+              - "2026-09-12T14:25:10Z"
+      traits:
+        - $ref: '#/components/messageTraits/cloudEventsEnvelope'
+      examples:
+        - name: paymentRejectedExample
+          summary: Rejeição para uma Reservation Saga distinta, ainda aguardando resultado.
+          payload:
+            correlationId: "c3d5f7b9-2345-4bcd-8ef0-123456789abc"
+            rejectedAt: "2026-09-12T14:25:10Z"
+          headers:
+            x-correlation-id: "c3d5f7b9-2345-4bcd-8ef0-123456789abc"
+            x-causation-id: "c3d5f7b9-2345-4bcd-8ef0-123456789abc"
+
+    reservationConfirmed:
+      name: ReservationConfirmed
+      title: ReservationConfirmed.v1
+      summary: >-
+        Resultado final de confirmação de uma Reservation após autorização de pagamento (RF-01),
+        habilitando Catalog (Availability Block) e Notification.
+      contentType: application/json
+      correlationId:
+        location: $message.header#/x-correlation-id
+        description: >-
+          Correlação ponta a ponta com a Reservation Saga. Este evento reage a
+          `payment.payment_authorized`: `causationId == correlationId` nesta publicação (ver premissa
+          "Causation").
+      headers:
+        type: object
+        required:
+          - x-correlation-id
+          - x-causation-id
+        properties:
+          x-correlation-id:
+            type: string
+            description: Correlation ID propagado em todo log de mensageria (mesmo valor do payload).
+          x-causation-id:
+            type: string
+            description: Causation ID (== correlationId nesta publicação — ver premissa "Causation").
+      payload:
+        type: object
+        required:
+          - correlationId
+          - causationId
+          - reservationId
+          - accommodationId
+          - guestReference
+          - checkIn
+          - checkOut
+          - confirmedAt
+        properties:
+          correlationId:
+            type: string
+            format: uuid
+            description: Identificador da Reservation Saga (mesmo valor de `booking.payment_requested`).
+            examples:
+              - "b2c4e6a8-1234-4abc-9def-0123456789ab"
+          causationId:
+            type: string
+            format: uuid
+            description: >-
+              Causation ID (== correlationId nesta publicação — ver premissa "Causation" sobre a
+              ausência de um identificador de evento próprio em `payment.payment_authorized`).
+            examples:
+              - "b2c4e6a8-1234-4abc-9def-0123456789ab"
+          reservationId:
+            type: string
+            format: uuid
+            description: >-
+              Identificador da Reservation confirmada. Distinto de `correlationId` na modelagem de
+              domínio (`domains/booking/domain.md` §3), ainda que hoje compartilhe o mesmo valor
+              (implementação atual de F01).
+            examples:
+              - "8f14e45f-ceea-467e-a5f0-3f9e6d3d0b1e"
+          accommodationId:
+            type: string
+            format: uuid
+            description: Identificador da Accommodation reservada — necessário a Catalog (RN-05/RN-09).
+            examples:
+              - "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          guestReference:
+            type: string
+            minLength: 1
+            maxLength: 255
+            description: Guest de referência — necessário a Notification para identificar a quem notificar.
+            examples:
+              - "guest-marina-alves"
+          checkIn:
+            type: string
+            format: date
+            description: Data de check-in congelada na solicitação — necessária a Catalog para o Availability Block.
+            examples:
+              - "2026-10-10"
+          checkOut:
+            type: string
+            format: date
+            description: Data de check-out congelada na solicitação — necessária a Catalog para o Availability Block.
+            examples:
+              - "2026-10-13"
+          confirmedAt:
+            type: string
+            format: date-time
+            description: Instante UTC em que Booking concluiu a transição para `confirmada`.
+            examples:
+              - "2026-09-12T14:25:11Z"
+      traits:
+        - $ref: '#/components/messageTraits/cloudEventsEnvelope'
+      examples:
+        - name: reservationConfirmedExample
+          summary: >-
+            Confirmação da mesma Reservation dos exemplos "pagamentoPendente"/"paymentAuthorizedExample"
+            (id 8f14e45f-ceea-467e-a5f0-3f9e6d3d0b1e).
+          payload:
+            correlationId: "b2c4e6a8-1234-4abc-9def-0123456789ab"
+            causationId: "b2c4e6a8-1234-4abc-9def-0123456789ab"
+            reservationId: "8f14e45f-ceea-467e-a5f0-3f9e6d3d0b1e"
+            accommodationId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+            guestReference: "guest-marina-alves"
+            checkIn: "2026-10-10"
+            checkOut: "2026-10-13"
+            confirmedAt: "2026-09-12T14:25:11Z"
+          headers:
+            x-correlation-id: "b2c4e6a8-1234-4abc-9def-0123456789ab"
+            x-causation-id: "b2c4e6a8-1234-4abc-9def-0123456789ab"
+
+    reservationCancelled:
+      name: ReservationCancelled
+      title: ReservationCancelled.v1
+      summary: >-
+        Resultado final de cancelamento de uma Reservation após rejeição de pagamento (RF-02),
+        habilitando Catalog (manter Availability Block livre) e Notification.
+      contentType: application/json
+      correlationId:
+        location: $message.header#/x-correlation-id
+        description: >-
+          Correlação ponta a ponta com a Reservation Saga. Este evento reage a
+          `payment.payment_rejected`: `causationId == correlationId` nesta publicação (ver premissa
+          "Causation").
+      headers:
+        type: object
+        required:
+          - x-correlation-id
+          - x-causation-id
+        properties:
+          x-correlation-id:
+            type: string
+            description: Correlation ID propagado em todo log de mensageria (mesmo valor do payload).
+          x-causation-id:
+            type: string
+            description: Causation ID (== correlationId nesta publicação — ver premissa "Causation").
+      payload:
+        type: object
+        required:
+          - correlationId
+          - causationId
+          - reservationId
+          - accommodationId
+          - guestReference
+          - checkIn
+          - checkOut
+          - cancelledAt
+          - cancellationReason
+        properties:
+          correlationId:
+            type: string
+            format: uuid
+            description: Identificador da Reservation Saga (mesmo valor de `booking.payment_requested`).
+            examples:
+              - "c3d5f7b9-2345-4bcd-8ef0-123456789abc"
+          causationId:
+            type: string
+            format: uuid
+            description: >-
+              Causation ID (== correlationId nesta publicação — ver premissa "Causation" sobre a
+              ausência de um identificador de evento próprio em `payment.payment_rejected`).
+            examples:
+              - "c3d5f7b9-2345-4bcd-8ef0-123456789abc"
+          reservationId:
+            type: string
+            format: uuid
+            description: >-
+              Identificador da Reservation cancelada. Distinto de `correlationId` na modelagem de
+              domínio (`domains/booking/domain.md` §3), ainda que hoje compartilhe o mesmo valor
+              (implementação atual de F01).
+            examples:
+              - "1e2d3c4b-5a69-478f-9b0c-1d2e3f405162"
+          accommodationId:
+            type: string
+            format: uuid
+            description: >-
+              Identificador da Accommodation da reserva cancelada — necessário a Catalog para manter o
+              Availability Block livre (RN-05).
+            examples:
+              - "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          guestReference:
+            type: string
+            minLength: 1
+            maxLength: 255
+            description: Guest de referência — necessário a Notification para identificar a quem notificar.
+            examples:
+              - "guest-joao-pereira"
+          checkIn:
+            type: string
+            format: date
+            description: Data de check-in congelada na solicitação.
+            examples:
+              - "2026-11-01"
+          checkOut:
+            type: string
+            format: date
+            description: Data de check-out congelada na solicitação.
+            examples:
+              - "2026-11-05"
+          cancelledAt:
+            type: string
+            format: date-time
+            description: Instante UTC em que Booking concluiu a transição para `cancelada`.
+            examples:
+              - "2026-09-12T14:25:11Z"
+          cancellationReason:
+            type: string
+            minLength: 1
+            description: >-
+              Motivo de negócio do cancelamento (DP-01) — reflete o fato "pagamento rejeitado" em
+              linguagem de negócio de Booking, nunca um detalhe técnico interno de Payment. Mesmo texto
+              exposto por Booking F02 (`tasks/prd-consulta-reserva/api-contract.yaml`).
+            examples:
+              - "Pagamento rejeitado pela simulação de Payment."
+      traits:
+        - $ref: '#/components/messageTraits/cloudEventsEnvelope'
+      examples:
+        - name: reservationCancelledExample
+          summary: Cancelamento de uma Reservation distinta, após rejeição de pagamento.
+          payload:
+            correlationId: "c3d5f7b9-2345-4bcd-8ef0-123456789abc"
+            causationId: "c3d5f7b9-2345-4bcd-8ef0-123456789abc"
+            reservationId: "1e2d3c4b-5a69-478f-9b0c-1d2e3f405162"
+            accommodationId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+            guestReference: "guest-joao-pereira"
+            checkIn: "2026-11-01"
+            checkOut: "2026-11-05"
+            cancelledAt: "2026-09-12T14:25:11Z"
+            cancellationReason: "Pagamento rejeitado pela simulação de Payment."
+          headers:
+            x-correlation-id: "c3d5f7b9-2345-4bcd-8ef0-123456789abc"
+            x-causation-id: "c3d5f7b9-2345-4bcd-8ef0-123456789abc"
+
+  messageTraits:
+    cloudEventsEnvelope:
+      description: >-
+        Transporte via Rmq.CloudEvents: o payload viaja no campo `data` de um envelope CloudEvents com
+        type `com.localizestay.<evento>.v1` (`com.localizestay.payment.payment_authorized.v1`,
+        `com.localizestay.payment.payment_rejected.v1`,
+        `com.localizestay.booking.reservation_confirmed.v1`,
+        `com.localizestay.booking.reservation_cancelled.v1`) e source `/booking` (nas publicações) ou
+        `/payment` (assumido para as mensagens consumidas, a confirmar quando Payment formalizar seu
+        contrato); os IDs de correlação vão também nos headers AMQP x-correlation-id/x-causation-id —
+        mesma convenção de `contracts/asyncapi/diagnostics-v1.yaml`.
