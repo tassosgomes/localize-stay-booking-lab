@@ -49,3 +49,30 @@ O gate cobre só o payload (`PayloadBuilderTests`, sem rede). Exigem o
 `ecad-dev-openmetadata` real e ficam como verificação manual: gerar o PAT,
 executar o script, rodar a ingestion Postgres (`ingestion-postgres.yaml`) e
 confirmar visualmente a UI — o executor desta task não tem acesso ao homelab.
+
+## Calendário de Reservations no OpenMetadata (F05, V-02)
+
+Depois que `integration.reservation_calendar_v1` existir no PostgreSQL, o dono
+do homelab deve executar a ingestão PostgreSQL já configurada. A configuração
+inclui o schema `integration` e `includeViews: true`; não há credencial real
+versionada neste repositório.
+
+```bash
+# Execute no ambiente que possui OpenMetadata e as variáveis OM_* necessárias.
+metadata ingest -c scripts/openmetadata/ingestion-postgres.yaml
+```
+
+Na UI, confirmar manualmente que o dataset
+`localize_stay.integration.reservation_calendar_v1` foi publicado e possui:
+
+- owner lógico **Booking**;
+- tag `localize-stay`;
+- descrição e compatibilidade do contrato trazidas dos `COMMENT` do DDL;
+- lineage de `booking.reservations` até a view. Se o conector não o inferir da
+  definição SQL, registrar a relação manualmente pela UI/API com PAT de escopo
+  mínimo.
+
+Este é um checkpoint manual de governança do ambiente real. Ele deve ser
+anexado à revisão da task, mas não é substituído nem validado pelo gate
+automatizado: a ausência de credenciais do homelab não invalida a evidência
+local dos grants.

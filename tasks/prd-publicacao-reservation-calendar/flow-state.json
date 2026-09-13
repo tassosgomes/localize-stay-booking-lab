@@ -19,10 +19,10 @@
   "validated_tree": null,
   "last_result": {
     "outcome": "checkpoint_ok",
-    "task": "1.0",
+    "task": "2.0",
     "attempt": 1,
-    "report": "1_task_review.md",
-    "gate": "GATE: APROVADO (format, build, 7 ReservationCalendarContractTests)",
+    "report": "2_task_review.md",
+    "gate": "GATE: APROVADO (format, build, 6 ServiceRoles tests)",
     "checkpoint_ref": "HEAD"
   },
   "history": [
@@ -73,9 +73,42 @@
     {
       "event": "task_checkpointed",
       "task": "1.0",
-      "commit": "HEAD",
+      "commit": "05d9ad99408dafbc8f536f8f7ac34998f35a6cf3",
       "report": "1_task_review.md",
       "gate": "GATE: APROVADO"
+    },
+    {
+      "event": "implementation_started",
+      "task": "2.0",
+      "attempt": 1,
+      "dependency": "1.0 checkpoint 05d9ad99408dafbc8f536f8f7ac34998f35a6cf3"
+    },
+    {
+      "event": "implementation_complete",
+      "task": "2.0",
+      "attempt": 1,
+      "gate": "approved",
+      "files": [
+        "services/booking/tests/LocalizeStay.Booking.IntegrationTests/Reservations/ReservationCalendarContractTests.cs",
+        "db/integration/verify-reservation-calendar.sql",
+        "scripts/openmetadata/README.md"
+      ]
+    },
+    {
+      "event": "validation_approved",
+      "task": "2.0",
+      "report": "2_task_review.md",
+      "blockers": 0,
+      "recommendations": 0,
+      "manual_follow_up": "OpenMetadata ingestion and UI confirmation remain external and unexecuted."
+    },
+    {
+      "event": "task_checkpointed",
+      "task": "2.0",
+      "commit": "HEAD",
+      "report": "2_task_review.md",
+      "gate": "GATE: APROVADO",
+      "manual_follow_up": "OpenMetadata ingestion and UI confirmation remain external and unexecuted."
     }
   ]
 }

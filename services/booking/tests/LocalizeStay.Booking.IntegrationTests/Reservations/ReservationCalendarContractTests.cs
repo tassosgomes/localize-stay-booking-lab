@@ -10,6 +10,8 @@ public sealed class ReservationCalendarContractTests(ReservationCalendarFixture 
 {
     private readonly ReservationCalendarFixture _fixture = fixture;
 
+    public static TheoryData<string> ServiceRoles => ["catalog_role", "booking_role", "payment_role"];
+
     [Fact]
     public async Task ViewSchema_WhenPublished_MatchesTheSevenColumnContract()
     {
@@ -129,6 +131,61 @@ public sealed class ReservationCalendarContractTests(ReservationCalendarFixture 
         Assert.Equal(1L, (long)(await command.ExecuteScalarAsync())!);
     }
 
+    [Theory]
+    [MemberData(nameof(ServiceRoles))]
+    public async Task ServiceRoles_WhenReadingPublishedView_ReturnsExpectedTerminalReservation(string role)
+    {
+        var reservation = CreateReservation();
+        reservation.Confirm(new DateTime(2026, 9, 13, 13, 0, 0, DateTimeKind.Utc));
+        await PersistAsync(reservation);
+
+        await using var connection = _fixture.CreateConnection();
+        await connection.OpenAsync();
+        await EnsureServiceRoleGrantsAsync(connection);
+
+        await ExecuteAsRoleAsync(connection, role, async () =>
+        {
+            await using var select = new NpgsqlCommand("""
+                SELECT count(*)
+                FROM integration.reservation_calendar_v1
+                WHERE reservation_id = @reservationId;
+                """, connection);
+            select.Parameters.AddWithValue("reservationId", reservation.Id);
+
+            Assert.Equal(1L, (long)(await select.ExecuteScalarAsync())!);
+        });
+    }
+
+    [Theory]
+    [MemberData(nameof(ServiceRoles))]
+    public async Task ServiceRoles_WhenAttemptingWriteOrCrossDomainAccess_AreDenied(string role)
+    {
+        await using var connection = _fixture.CreateConnection();
+        await connection.OpenAsync();
+        await EnsureServiceRoleGrantsAsync(connection);
+
+        await ExecuteAsRoleAsync(connection, role, async () =>
+        {
+            await AssertInsufficientPrivilegeAsync(connection, """
+                INSERT INTO integration.reservation_calendar_v1 (reservation_id)
+                VALUES ('00000000-0000-0000-0000-000000000001');
+                """);
+            await AssertInsufficientPrivilegeAsync(connection, """
+                UPDATE integration.reservation_calendar_v1
+                SET status = status;
+                """);
+            await AssertInsufficientPrivilegeAsync(connection, """
+                DELETE FROM integration.reservation_calendar_v1;
+                """);
+            await AssertInsufficientPrivilegeAsync(connection, """
+                CREATE TABLE integration.reservation_calendar_access_probe (id integer);
+                """);
+            await AssertInsufficientPrivilegeAsync(connection, """
+                SELECT * FROM booking.reservations;
+                """);
+        });
+    }
+
     private static Reservation CreateReservation(DateOnly? checkIn = null, DateOnly? checkOut = null) => Reservation.Create(
         Guid.NewGuid(), "guest-calendar", checkIn ?? new DateOnly(2027, 3, 1), checkOut ?? new DateOnly(2027, 3, 4), 2,
         new AvailabilityFacts(true, 4, true, 275.50m, "BRL"));
@@ -180,6 +237,42 @@ public sealed class ReservationCalendarContractTests(ReservationCalendarFixture 
             rows.Add(new CalendarRow(reader.GetGuid(0), reader.GetGuid(1), reader.GetFieldValue<DateOnly>(2), reader.GetFieldValue<DateOnly>(3), reader.GetString(4), reader.GetDateTime(5)));
         }
         return rows;
+    }
+
+    private static async Task EnsureServiceRoleGrantsAsync(NpgsqlConnection connection)
+    {
+        await using var command = new NpgsqlCommand("""
+            GRANT USAGE ON SCHEMA integration TO catalog_role, booking_role, payment_role;
+            REVOKE CREATE ON SCHEMA integration FROM catalog_role, booking_role, payment_role;
+            REVOKE ALL ON SCHEMA booking FROM catalog_role, payment_role;
+            REVOKE ALL ON ALL TABLES IN SCHEMA booking FROM catalog_role, payment_role;
+            """, connection);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    private static async Task ExecuteAsRoleAsync(NpgsqlConnection connection, string role, Func<Task> action)
+    {
+        await using (var setRole = new NpgsqlCommand($"SET ROLE {role};", connection))
+        {
+            await setRole.ExecuteNonQueryAsync();
+        }
+
+        try
+        {
+            await action();
+        }
+        finally
+        {
+            await using var resetRole = new NpgsqlCommand("RESET ROLE;", connection);
+            await resetRole.ExecuteNonQueryAsync();
+        }
+    }
+
+    private static async Task AssertInsufficientPrivilegeAsync(NpgsqlConnection connection, string commandText)
+    {
+        await using var command = new NpgsqlCommand(commandText, connection);
+        var exception = await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync());
+        Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, exception.SqlState);
     }
 
     private sealed record CalendarRow(Guid Id, Guid AccommodationId, DateOnly CheckIn, DateOnly CheckOut, string Status, DateTime UpdatedAt);

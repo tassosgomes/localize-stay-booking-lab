@@ -85,7 +85,7 @@ reintroduz nem o duplica.
 ## Tarefas
 
 - [x] 1.0 Publicar `integration.reservation_calendar_v1` e provar elegibilidade, cardinalidade, período e atualização pós-commit (V-01)
-- [ ] 2.0 Proteger o acesso por role e documentar a catalogação no OpenMetadata (V-02)
+- [x] 2.0 Proteger o acesso por role e documentar a catalogação no OpenMetadata (V-02)
 
 ## Rastreabilidade US → Tasks
 
