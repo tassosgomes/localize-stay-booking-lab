@@ -65,7 +65,7 @@ Os estados de negócio da Reservation na Fase 0 são `solicitada`, `confirmada` 
 | F02 | Consulta de Reserva | Permite acompanhar dados, estado final e situação da saga de uma Reservation | Must Have | `prd-ready` | [`tasks/prd-consulta-reserva/prd.md`](../../tasks/prd-consulta-reserva/prd.md) |
 | F03 | Solicitação de Pagamento | Inicia a etapa assíncrona da saga para uma Reservation válida e solicitada | Must Have | `prd-ready` | [`tasks/prd-solicitacao-pagamento/prd.md`](../../tasks/prd-solicitacao-pagamento/prd.md) |
 | F04 | Conclusão da Saga | Confirma a Reservation após autorização ou a cancela após rejeição, publicando o resultado final | Must Have | `prd-ready` | — |
-| F05 | Publicação do dataset `reservation_calendar_v1` | Expõe o calendário de reservas como dataset contratado sem revelar dados internos de Booking | Should Have | `prd-ready` | — |
+| F05 | Publicação do dataset `reservation_calendar_v1` | Expõe o calendário de reservas como dataset contratado sem revelar dados internos de Booking | Should Have | `prd-ready` | [`tasks/prd-publicacao-reservation-calendar/prd.md`](../../tasks/prd-publicacao-reservation-calendar/prd.md) |
 | F06 | Resiliência da Saga | Trata timeout, retries, idempotência, resultado tardio e compensação de pagamento autorizado quando a confirmação não puder ser concluída | Should Have | `planned` | — |
 
 **Prioridades (MoSCoW):** `Must Have` · `Should Have` · `Could Have` · `Won't Have`  
@@ -155,7 +155,7 @@ Os contratos técnicos versionados podem representar esses nomes com versão no 
 ## 9. Questões em Aberto (Open Questions)
 
 - [x] Moeda única definida no PRD de F01: BRL, fixa em todo o laboratório (`docs/product-decisions/PD-001-moeda-unica-laboratorio.md`).
-- [ ] Definir no PRD de F05 quais estados entram em `reservation_calendar_v1` e a política de atualização do dataset.
+- [x] Definido no PRD de F05 quais estados entram em `reservation_calendar_v1` e a política de atualização do dataset: `confirmada` e `cancelada` entram; `solicitada` fica fora; o dataset mantém um snapshot atual, atualizado após a transição terminal persistida.
 - [ ] Na Fase 1, definir prazo de timeout, política de retry e comportamento para autorização recebida depois do cancelamento.
 - [ ] Na Fase 1, definir quando Booking solicita estorno a Payment se uma autorização não puder resultar em confirmação.
 
