@@ -12,11 +12,9 @@ namespace LocalizeStay.Booking.IntegrationTests.Reservations;
 // V-01: os 5 cenários do AC de RF-01 via WebApplicationFactory real —
 // Postgres Testcontainers da coleção. Seed via IReservationRepository.AddAsync
 // (caminho normal de F01, produz solicitada/pendente); confirmada/autorizado e
-// cancelada/rejeitado via UPDATE SQL direto (ExecuteSqlInterpolated), porque
-// nenhum método de domínio para essas transições existe ainda (fica para F04).
-// Dívida documentada na TechSpec: os helpers de seed devem ser
-// revisados/substituídos quando F04 introduzir a transição real. O GET não
-// toca Catalog, então nenhum fake é necessário.
+// cancelada/rejeitado via as transições de domínio de F04, para persistir o
+// status, terminal_transition_at e o estado da Saga na mesma unidade de trabalho.
+// O GET não toca Catalog, então nenhum fake é necessário.
 [Collection("BookingIntegrationTests")]
 public sealed class ReservationQueryEndpointTests(CustomWebApplicationFactory factory)
 {
@@ -65,7 +63,7 @@ public sealed class ReservationQueryEndpointTests(CustomWebApplicationFactory fa
     public async Task Get_reservation_by_id_when_confirmada_returns_200_with_autorizado_and_null_cancellationReason()
     {
         var reservation = await SeedAsync();
-        await UpdateStateAsync(reservation.Id, "confirmada", "Authorized", cancellationReason: null);
+        await UpdateStateAsync(reservation.Id, ReservationStatus.Confirmada, cancellationReason: null);
 
         using var client = _factory.CreateClient();
         using var response = await client.GetAsync($"/v1/reservations/{reservation.Id}");
@@ -86,7 +84,7 @@ public sealed class ReservationQueryEndpointTests(CustomWebApplicationFactory fa
     {
         const string cancellationReason = "Pagamento rejeitado pela simulação de Payment.";
         var reservation = await SeedAsync();
-        await UpdateStateAsync(reservation.Id, "cancelada", "Rejected", cancellationReason);
+        await UpdateStateAsync(reservation.Id, ReservationStatus.Cancelada, cancellationReason);
 
         using var client = _factory.CreateClient();
         using var response = await client.GetAsync($"/v1/reservations/{reservation.Id}");
@@ -189,14 +187,28 @@ public sealed class ReservationQueryEndpointTests(CustomWebApplicationFactory fa
         return reservation;
     }
 
-    private async Task UpdateStateAsync(Guid id, string status, string sagaState, string? cancellationReason)
+    private async Task UpdateStateAsync(Guid id, ReservationStatus status, string? cancellationReason)
     {
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
+        var reservation = await dbContext.Reservations
+            .Include(item => item.Saga)
+            .SingleAsync(item => item.Id == id);
 
-        await dbContext.Database.ExecuteSqlInterpolatedAsync(
-            $"UPDATE booking.reservations SET status = {status} WHERE id = {id}");
-        await dbContext.Database.ExecuteSqlInterpolatedAsync(
-            $"UPDATE booking.reservation_sagas SET state = {sagaState}, cancellation_reason = {cancellationReason} WHERE reservation_id = {id}");
+        switch (status)
+        {
+            case ReservationStatus.Confirmada:
+                reservation.Confirm(DateTime.UtcNow);
+                break;
+            case ReservationStatus.Cancelada:
+                reservation.Cancel(
+                    cancellationReason ?? throw new ArgumentNullException(nameof(cancellationReason)),
+                    DateTime.UtcNow);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(status), status, "Only terminal states are valid here.");
+        }
+
+        await dbContext.SaveChangesAsync();
     }
 }
