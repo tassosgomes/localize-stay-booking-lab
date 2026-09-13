@@ -247,3 +247,102 @@ jobs:
         with:
           sarif_file: trivy-frontend.sarif
           category: trivy-frontend
+
+  # Roda no runner self-hosted (LAN do infra) porque precisa falar
+  # diretamente com o postgres-main. Migration é passo de deploy, nunca de
+  # boot da aplicação (ver README.md) — por isso vive aqui, não no container.
+  migrate:
+    needs: [changes, dotnet]
+    if: github.event_name == 'push' && needs.changes.outputs.dotnet_matrix != '[]'
+    runs-on: [self-hosted, homelab]
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.changes.outputs.dotnet_matrix) }}
+    env:
+      POSTGRES_HOST: ${{ vars.POSTGRES_MAIN_HOST }}
+      POSTGRES_PORT: ${{ vars.POSTGRES_MAIN_PORT }}
+      CATALOG_DB_PASSWORD: ${{ secrets.CATALOG_DB_PASSWORD }}
+      BOOKING_DB_PASSWORD: ${{ secrets.BOOKING_DB_PASSWORD }}
+      PAYMENT_DB_PASSWORD: ${{ secrets.PAYMENT_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+        if: matrix.service != 'notification-worker'
+
+      - uses: actions/setup-dotnet@v6
+        if: matrix.service != 'notification-worker'
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install dotnet-ef
+        if: matrix.service != 'notification-worker'
+        run: |
+          dotnet tool install --global dotnet-ef || dotnet tool update --global dotnet-ef
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Apply migration
+        if: matrix.service != 'notification-worker'
+        run: |
+          case "${{ matrix.service }}" in
+            catalog)
+              ROLE=catalog_role; PW="$CATALOG_DB_PASSWORD"
+              INFRA=services/catalog/src/4-Infra/LocalizeStay.Catalog.Infra
+              STARTUP=services/catalog/src/1-Services/LocalizeStay.Catalog.Api
+              ENVKEY=ConnectionStrings__Catalog
+              ;;
+            booking)
+              ROLE=booking_role; PW="$BOOKING_DB_PASSWORD"
+              INFRA=services/booking/src/4-Infra/LocalizeStay.Booking.Infra
+              STARTUP=services/booking/src/1-Services/LocalizeStay.Booking.Api
+              ENVKEY=ConnectionStrings__Booking
+              ;;
+            payment)
+              ROLE=payment_role; PW="$PAYMENT_DB_PASSWORD"
+              INFRA=services/payment/src/4-Infra/LocalizeStay.Payment.Infra
+              STARTUP=services/payment/src/1-Services/LocalizeStay.Payment.Api
+              ENVKEY=ConnectionStrings__Payment
+              ;;
+            *)
+              echo "sem migration para ${{ matrix.service }}"
+              exit 0
+              ;;
+          esac
+          CONN="Host=$POSTGRES_HOST;Port=$POSTGRES_PORT;Database=localize_stay;Username=$ROLE;Password=$PW"
+          export "${ENVKEY}=${CONN}"
+          dotnet ef database update --project "$INFRA" --startup-project "$STARTUP"
+
+  # Chama a API do Coolify diretamente (sem docker.sock no runner). Só
+  # dispara deploy dos serviços cuja imagem realmente mudou nesse push.
+  deploy:
+    needs: [changes, dotnet, frontend, migrate]
+    if: |
+      always() &&
+      github.event_name == 'push' &&
+      needs.dotnet.result != 'failure' &&
+      needs.frontend.result != 'failure' &&
+      needs.migrate.result != 'failure'
+    runs-on: [self-hosted, homelab]
+    steps:
+      - name: Resolve Coolify resource UUIDs dos serviços alterados
+        id: uuids
+        run: |
+          IDS=()
+          if [[ "${{ needs.changes.outputs.frontend_changed }}" == "true" ]]; then
+            IDS+=("${{ vars.COOLIFY_FRONTEND_UUID }}")
+          fi
+          while read -r svc; do
+            case "$svc" in
+              catalog) IDS+=("${{ vars.COOLIFY_CATALOG_UUID }}") ;;
+              booking) IDS+=("${{ vars.COOLIFY_BOOKING_UUID }}") ;;
+              payment) IDS+=("${{ vars.COOLIFY_PAYMENT_UUID }}") ;;
+              notification-worker) IDS+=("${{ vars.COOLIFY_NOTIFICATION_WORKER_UUID }}") ;;
+            esac
+          done < <(echo '${{ needs.changes.outputs.dotnet_matrix }}' | jq -r '.[].service')
+          JOINED=$(IFS=,; echo "${IDS[*]}")
+          echo "uuids=$JOINED" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger Coolify deploy
+        if: steps.uuids.outputs.uuids != ''
+        run: |
+          curl -sf -X POST "${{ vars.COOLIFY_URL }}/api/v1/deploy?uuid=${{ steps.uuids.outputs.uuids }}&force=true" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}"
