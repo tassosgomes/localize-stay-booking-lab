@@ -1,4 +1,5 @@
 import { useEffect, useState, type MouseEvent } from 'react';
+import { ReservationLookupPage } from './features/reservation-lookup/index.ts';
 import { PropertyWorkspacePage } from './features/property-registration/index.ts';
 import { ReservationRequestPage } from './features/reservation-request/index.ts';
 import ServiceStatus from './components/ServiceStatus/ServiceStatus.tsx';
@@ -8,7 +9,9 @@ import './App.css';
 // atual é lida de window.location.pathname (âncoras navegam via pushState;
 // popstate cobre back/forward). `/properties` é a jornada de Cadastro de
 // Property; `/reservations` é registrada pela API pública da feature de
-// Solicitação de Reserva — não existe `/reservations/:id` (consulta é F02).
+// Solicitação de Reserva; `/reservations/consultar` é registrada pela API
+// pública da feature de Consulta de Reserva (rota irmã, não
+// `/reservations/:id` — a consulta parte de um identificador informado).
 function currentPathname(): string {
   return window.location.pathname;
 }
@@ -37,6 +40,7 @@ export default function App() {
   }
 
   const onReservations = pathname === '/reservations';
+  const onReservationLookup = pathname === '/reservations/consultar';
 
   const navigation = (
     <nav className="app-nav" aria-label="Navegação principal">
@@ -48,6 +52,9 @@ export default function App() {
       </a>
       <a href="/reservations" onClick={(event) => navigate(event, '/reservations')}>
         Solicitar reserva
+      </a>
+      <a href="/reservations/consultar" onClick={(event) => navigate(event, '/reservations/consultar')}>
+        Consultar reserva
       </a>
     </nav>
   );
@@ -82,7 +89,7 @@ export default function App() {
           padding: 'var(--space-section) var(--space-base)',
         }}
       >
-        {onReservations ? <ReservationRequestPage /> : <ServiceStatus />}
+        {onReservations ? <ReservationRequestPage /> : onReservationLookup ? <ReservationLookupPage /> : <ServiceStatus />}
       </main>
     </>
   );

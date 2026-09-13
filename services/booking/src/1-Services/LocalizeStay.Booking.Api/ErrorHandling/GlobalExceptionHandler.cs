@@ -59,6 +59,12 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
                 "periodo-indisponivel",
                 "Período indisponível",
                 "A Accommodation não está disponível em todo o período solicitado."),
+            ReservationNotFoundException => (
+                StatusCodes.Status404NotFound,
+                "RESERVATION_NOT_FOUND",
+                "reservation-not-found",
+                "Reservation não encontrada",
+                "Nenhuma Reservation existe com o identificador informado."),
             CatalogUnavailableException => (
                 StatusCodes.Status503ServiceUnavailable,
                 "CATALOG_INDISPONIVEL",

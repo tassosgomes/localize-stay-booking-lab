@@ -150,6 +150,7 @@ is_frontend_only_filter() { # filtros do frontend (task 7.0: ServiceStatus.test)
 
 frontend_unit_files_for() { # $1 filter, $2 frontend dir
   local filter="$1" fdir="$2"
+  filter="${filter%.test}" # strip um sufixo .test final para o glob nao duplicar (*.test*.test.ts nunca casa)
   find "$fdir" \( -path '*/node_modules/*' -o -path '*/dist/*' -o -path '*/e2e/*' \) -prune -o \
     -type f \( -name "*${filter}*.test.ts" -o -name "*${filter}*.test.tsx" \) -print 2>/dev/null
 }

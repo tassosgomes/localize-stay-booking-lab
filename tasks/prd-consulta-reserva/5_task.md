@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 slice_type: vertical
 verification_type: behavioral
 parallelizable: false
@@ -87,11 +87,11 @@ e de um artefato do frontend (4.0, a UI) ao mesmo tempo — o ponto de convergê
 
 ## Subtarefas
 
-- [ ] 5.1 Escrever o cenário 1: criar Reservation (jornada real de F01 ou API direta), consultar em
+- [x] 5.1 Escrever o cenário 1: criar Reservation (jornada real de F01 ou API direta), consultar em
       `/reservations/consultar` e confirmar campos + `sagaStatus=pendente`
-- [ ] 5.2 Escrever o cenário 2: consultar identificador bem formado porém inexistente e confirmar
+- [x] 5.2 Escrever o cenário 2: consultar identificador bem formado porém inexistente e confirmar
       "não encontrada"
-- [ ] 5.3 Rodar o gate completo (`scripts/ai-flow/gate.sh --filter="reservation-lookup"`) e confirmar
+- [x] 5.3 Rodar o gate completo (`scripts/ai-flow/gate.sh --filter="reservation-lookup"`) e confirmar
       lint, type-check, coverage, build, drift-check e os 2 cenários Playwright verdes
 
 ## Sequenciamento

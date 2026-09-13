@@ -12,7 +12,7 @@
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit",
     "type-check": "tsc --noEmit",
-    "api:generate": "openapi-typescript ../../tasks/prd-solicitacao-reserva/api-contract.yaml -o src/services/api/generated/booking.ts && openapi-typescript ../../tasks/prd-cadastro-property/api-contract.yaml -o src/services/api/generated/catalog.ts",
+    "api:generate": "openapi-typescript ../../tasks/prd-solicitacao-reserva/api-contract.yaml -o src/services/api/generated/booking.ts && openapi-typescript ../../tasks/prd-cadastro-property/api-contract.yaml -o src/services/api/generated/catalog.ts && openapi-typescript ../../tasks/prd-consulta-reserva/api-contract.yaml -o src/services/api/generated/reservationDetail.ts",
     "api:check": "node scripts/check-catalog-drift.mjs"
   },
   "dependencies": {

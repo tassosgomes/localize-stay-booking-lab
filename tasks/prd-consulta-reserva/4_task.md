@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 slice_type: vertical
 verification_type: behavioral
 parallelizable: false
@@ -119,16 +119,16 @@ genérico (500/rede) num único incremento, não fatiado por tipo de resposta.
 
 ## Subtarefas
 
-- [ ] 4.1 Implementar `reservationIdValidation.ts` (obrigatório + formato UUID) e
+- [x] 4.1 Implementar `reservationIdValidation.ts` (obrigatório + formato UUID) e
       `reservationIdValidation.test.ts` (vazio, whitespace, UUID inválido, UUID válido)
-- [ ] 4.2 Implementar a máquina de estados de `ReservationLookupPage` (idle→searching→found/notFound/
+- [x] 4.2 Implementar a máquina de estados de `ReservationLookupPage` (idle→searching→found/notFound/
       invalid/failed), `AbortController` por busca e botão desabilitado durante `searching`
-- [ ] 4.3 Implementar `ReservationDetailView` (todos os campos, `cancellationReason` condicional, foco
+- [x] 4.3 Implementar `ReservationDetailView` (todos os campos, `cancellationReason` condicional, foco
       no título ao exibir resultado)
-- [ ] 4.4 Ligar o tratamento de erro por `(status, code)` via `FormErrorSummary`/`OperationFeedback`
+- [x] 4.4 Ligar o tratamento de erro por `(status, code)` via `FormErrorSummary`/`OperationFeedback`
       (400 campo, 404 neutro, 500/rede erro real com `traceId`)
-- [ ] 4.5 Registrar rota `/reservations/consultar` e entrada de navegação em `App.tsx`
-- [ ] 4.6 Escrever `ReservationLookupPage.test.tsx`: render inicial; vazio/malformado não dispara
+- [x] 4.5 Registrar rota `/reservations/consultar` e entrada de navegação em `App.tsx`
+- [x] 4.6 Escrever `ReservationLookupPage.test.tsx`: render inicial; vazio/malformado não dispara
       request; os 3 pares 200 estado/`sagaStatus` (com/sem `cancellationReason`); 400 distinto de 404;
       404 tom neutro; 500/rede com `traceId` e nova tentativa; segunda busca substitui resultado
       anterior; loading bloqueia busca concorrente

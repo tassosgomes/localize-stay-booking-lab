@@ -31,4 +31,6 @@ public sealed class ReservationSaga
     {
         PaymentRequestSentAt = occurredAt;
     }
+
+    public string? CancellationReason { get; private set; }
 }

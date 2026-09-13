@@ -2,5 +2,7 @@ namespace LocalizeStay.Booking.Domain.Reservations;
 
 public enum SagaState
 {
-    PaymentPending
+    PaymentPending,
+    Authorized,
+    Rejected
 }

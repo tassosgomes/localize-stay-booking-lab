@@ -7,4 +7,6 @@ public interface IReservationRepository
     Task AddAsync(Reservation reservation, CancellationToken cancellationToken);
 
     Task UpdateAsync(Reservation reservation, CancellationToken cancellationToken);
+
+    Task<Reservation?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 }
