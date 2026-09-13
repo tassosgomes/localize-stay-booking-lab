@@ -1,5 +1,6 @@
 using LocalizeStay.Booking.Application.Reservations;
 using LocalizeStay.Booking.Domain.Reservations;
+using Microsoft.EntityFrameworkCore;
 
 namespace LocalizeStay.Booking.Infra.Persistence;
 
@@ -20,5 +21,14 @@ public sealed class ReservationRepository(BookingDbContext dbContext) : IReserva
     {
         dbContext.Update(reservation);
         await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<Reservation?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await dbContext.Reservations
+            .AsNoTracking()
+            .Include(reservation => reservation.Saga)
+            .SingleOrDefaultAsync(reservation => reservation.Id == id, cancellationToken)
+            .ConfigureAwait(false);
     }
 }

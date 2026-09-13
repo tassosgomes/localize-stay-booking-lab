@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 slice_type: vertical
 verification_type: behavioral
 parallelizable: false
@@ -135,18 +135,18 @@ endpoint e o tratamento de erro existem juntos.
 
 ## Subtarefas
 
-- [ ] 2.1 Estender `Dispatcher`/`IDispatcher` com `IQuery<TResponse>`, `IQueryHandler<TQuery,TResponse>`
+- [x] 2.1 Estender `Dispatcher`/`IDispatcher` com `IQuery<TResponse>`, `IQueryHandler<TQuery,TResponse>`
       e o overload de `SendAsync` para queries (lado de comando existente inalterado)
-- [ ] 2.2 Implementar `GetReservationByIdQuery` + `GetReservationByIdQueryValidator` +
+- [x] 2.2 Implementar `GetReservationByIdQuery` + `GetReservationByIdQueryValidator` +
       `GetReservationByIdQueryHandler` + `ReservationNotFoundException`
-- [ ] 2.3 Estender `IReservationRepository`/`ReservationRepository` com `GetByIdAsync`
+- [x] 2.3 Estender `IReservationRepository`/`ReservationRepository` com `GetByIdAsync`
       (`Include(Saga)` + `AsNoTracking()`)
-- [ ] 2.4 Implementar `ReservationDetailResponseDto` (projeção + tradução de `sagaStatus`); ligar o
+- [x] 2.4 Implementar `ReservationDetailResponseDto` (projeção + tradução de `sagaStatus`); ligar o
       endpoint (`MapGet`), o novo case do `GlobalExceptionHandler` e o registro DI em
       `ApplicationExtensions`
-- [ ] 2.5 Escrever `GetReservationByIdQueryHandlerTests`: formato inválido (repositório nunca chamado),
+- [x] 2.5 Escrever `GetReservationByIdQueryHandlerTests`: formato inválido (repositório nunca chamado),
       não encontrado, encontrado (retorna a mesma instância)
-- [ ] 2.6 Escrever `ReservationQueryEndpointTests`: os 5 cenários do AC de RF-01 via
+- [x] 2.6 Escrever `ReservationQueryEndpointTests`: os 5 cenários do AC de RF-01 via
       `WebApplicationFactory` real (seed via `AddAsync` para solicitada/pendente; `UPDATE` SQL direto
       para confirmada/autorizado e cancelada/rejeitado+motivo; 404; 400)
 
