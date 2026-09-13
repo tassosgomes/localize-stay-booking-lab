@@ -12,9 +12,17 @@
 
 Fecha a Reservation Saga no Booking para os dois resultados publicados por Payment. A mesma fatia
 consome `payment.payment_authorized` e `payment.payment_rejected`, localiza a Saga por
-`correlationId`, confirma ou cancela a Reservation, registra o resultado, publica o evento final
-correspondente e ignora/loga mensagens não correlacionáveis ou tardias sem alterar estados terminais.
-Uma falha best-effort na publicação final não desfaz a transição já persistida.
+`correlationId`, confirma ou cancela a Reservation, registra o resultado e o instante UTC da
+transição terminal (`TerminalTransitionAt`), publica o evento final correspondente e ignora/loga
+mensagens não correlacionáveis ou tardias sem alterar estados terminais. Uma falha best-effort na
+publicação final não desfaz a transição já persistida.
+
+> **Emenda de alinhamento (2026-09-13):** `Confirm()`/`Cancel(string)` e o cálculo de
+> `confirmedAt`/`cancelledAt` só no momento da publicação foram substituídos por
+> `Confirm(DateTime)`/`Cancel(string, DateTime)`, que persistem `TerminalTransitionAt` no mesmo
+> commit da transição, com uma migration aditiva nova. A mudança decorre do handoff EN-01 de
+> `tasks/prd-publicacao-reservation-calendar/techspec.md` e da ADR-005 (Accepted); `techspec.md` e
+> `1_task.md` já refletem a emenda.
 
 O PRD declara a feature indivisível para a demonstração da coreografia; portanto Domain, Application,
 Infrastructure, consumidores, wiring e testes permanecem em uma única V-01. O plano não cria endpoint
@@ -104,7 +112,9 @@ tipo e a fatia precisa desse registro para executar.
 
 | Artefato | Tratamento na task | Status |
 |----------|--------------------|--------|
-| `Domain/Reservations/Reservation.cs` (`Confirm`, `Cancel`, guarda de estado) | Modificar | ✅ |
+| `Domain/Reservations/Reservation.cs` (`TerminalTransitionAt`, `Confirm(DateTime)`, `Cancel(string, DateTime)`, guarda de estado) | Modificar — EN-01/ADR-005 | ✅ |
+| `Infra/Persistence/Configurations/ReservationConfiguration.cs` (`terminal_transition_at`) | Modificar — EN-01/ADR-005 | ✅ |
+| `Infra/Migrations/*_AddTerminalTransitionAtToReservations` | Criar migration aditiva + constraint | ✅ |
 | `Domain/Reservations/ReservationSaga.cs` (`MarkAuthorized`, `MarkRejected`) | Modificar; preservar `CancellationReason` de F02 | ✅ |
 | `Domain/Reservations/SagaState.cs` (`Authorized`, `Rejected`) | Reutilizar o arquivo existente de F02; não alterar | ✅ Preexistente |
 | `Infra/Persistence/Configurations/ReservationSagaConfiguration.cs` (`cancellation_reason`) | Reutilizar o mapeamento existente de F02; não alterar | ✅ Preexistente |
@@ -135,8 +145,8 @@ tipo e a fatia precisa desse registro para executar.
 
 | # | Categoria | Task(s) / N/A | Skill relacionada | Status |
 |---|-----------|---------------|-------------------|--------|
-| 1 | Setup / Configuração | 1.0 — exchanges de entrada/saída, filas, consumers e DI; referência a `AwesomeAssertions` já centralmente versionada; sem pacote/versão nova ou migration | `dotnet-dependency-config` | ✅ |
-| 2 | Modelos de Dados | 1.0 — usa estados/coluna de F02 e consulta por `Saga.CorrelationId`; sem schema novo | `dotnet-architecture`, `dotnet-dependency-config` | ✅ |
+| 1 | Setup / Configuração | 1.0 — exchanges de entrada/saída, filas, consumers e DI; referência a `AwesomeAssertions` já centralmente versionada; sem pacote/versão nova | `dotnet-dependency-config` | ✅ |
+| 2 | Modelos de Dados | 1.0 — usa estados/coluna de F02, consulta por `Saga.CorrelationId` e adiciona `terminal_transition_at` + constraint (EN-01/ADR-005, migration nova) | `dotnet-architecture`, `dotnet-dependency-config` | ✅ |
 | 3 | Lógica de Negócio | 1.0 — transições, guards, outcomes e handlers | `dotnet-architecture` | ✅ |
 | 4 | Endpoints / Interfaces | 1.0 — interfaces de publisher e contrato AsyncAPI; N/A para endpoint HTTP | `dotnet-architecture` | ✅ |
 | 5 | Integrações Externas | 1.0 — RabbitMQ/CloudEvents para consumir e publicar | `dotnet-dependency-config` | ✅ |
@@ -150,7 +160,7 @@ tipo e a fatia precisa desse registro para executar.
 
 | Task | slice_type | Criar | Modificar | Subtarefas | Fatias | Faixa | Justificativa |
 |------|------------|-------|-----------|------------|--------|-------|---------------|
-| 1.0 | vertical | 20 | 9 | 5 | 1 | ⚠️ Acima do budget | A TechSpec e o PRD fecham confirmação, cancelamento, monotonicidade e falha best-effort como uma única V-01. Os 2 caminhos precisam compartilhar o repositório por correlação, o wiring RabbitMQ e a prova de que apenas o primeiro resultado publica; separar por camada ou por resultado deixaria estados/contratos sem gate independente. A nona modificação é apenas a referência ao `AwesomeAssertions` já pinada centralmente para cumprir a convenção dos testes unitários. Complexidade `high` exige revisão do plano antes da execução. |
+| 1.0 | vertical | 21 | 11 | 5 | 1 | ⚠️ Acima do budget | A TechSpec e o PRD fecham confirmação, cancelamento, monotonicidade e falha best-effort como uma única V-01. Os 2 caminhos precisam compartilhar o repositório por correlação, o wiring RabbitMQ e a prova de que apenas o primeiro resultado publica; separar por camada ou por resultado deixaria estados/contratos sem gate independente. A nona modificação é apenas a referência ao `AwesomeAssertions` já pinada centralmente; as duas últimas são o mapeamento EF e o model snapshot exigidos pela migration `AddTerminalTransitionAtToReservations` (EN-01/ADR-005, emenda de alinhamento com F05). Complexidade `high` exige revisão do plano antes da execução. |
 
 Task `vertical` tem exatamente uma fatia. O tamanho elevado não é um agrupamento de camadas por
 conveniência: cada arquivo atravessa a mesma jornada observável e os testes são produzidos na task.
@@ -178,9 +188,12 @@ standard antes de qualquer execução; não existe uma revisão anterior de F04 
 | Topologias, mensagens e consumidores de Payment | 1.0 | wiring e testes unitários/integração | Sim | ✅ |
 | Exchanges/eventos `booking.reservation_confirmed` e `booking.reservation_cancelled` | 1.0 | testes de integração; Catalog/Notification em features futuras | Sim | ✅ |
 | `CustomWebApplicationFactory`, `BookingIntegrationTestCollection` e `FakeCatalogServerFactory` | Preexistentes F01/F02/F03 | testes de integração de 1.0 | Sim | ✅ Reutilizado |
+| `Reservation.TerminalTransitionAt` + migration `AddTerminalTransitionAtToReservations` | 1.0 | testes de 1.0; `integration.reservation_calendar_v1` (F05, fora deste plano) | Sim | ✅ |
 
-Não há migration, contrato ou fixture produzida por task futura. F05 e as features de Catalog/
-Notification consomem os eventos depois, mas não são dependências de compilação ou do gate de 1.0.
+Não há contrato ou fixture produzida por task futura. A migration desta task é o único artefato
+consumido por outra feature: F05 (`tasks/prd-publicacao-reservation-calendar`) depende de
+`terminal_transition_at` para publicar `integration.reservation_calendar_v1`, não o inverso — F05 não
+é dependência de compilação ou do gate de 1.0. Catalog/Notification consomem os eventos depois.
 
 ## Análise de Paralelização
 

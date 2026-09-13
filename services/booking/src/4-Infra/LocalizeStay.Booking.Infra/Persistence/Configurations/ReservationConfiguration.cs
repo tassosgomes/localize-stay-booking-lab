@@ -29,6 +29,9 @@ public sealed class ReservationConfiguration : IEntityTypeConfiguration<Reservat
         builder.Property(reservation => reservation.Currency).HasColumnName("currency")
             .HasColumnType("varchar(3)").IsRequired();
         builder.Property(reservation => reservation.CreatedAt).HasColumnName("created_at");
+        builder.Property(reservation => reservation.TerminalTransitionAt)
+            .HasColumnName("terminal_transition_at")
+            .HasColumnType("timestamptz");
 
         builder.HasOne(reservation => reservation.Saga)
             .WithOne()

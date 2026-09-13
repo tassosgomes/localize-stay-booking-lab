@@ -62,9 +62,9 @@ Os estados de negócio da Reservation na Fase 0 são `solicitada`, `confirmada` 
 | # | Feature | Descrição | Prioridade | Status | PRD |
 |---|---|---|---|---|---|
 | F01 | Solicitação de Reserva | Guest informa Accommodation, período e hóspedes; Booking valida a disponibilidade no Catalog e congela o preço da estadia | Must Have | `prd-done` | [`tasks/prd-solicitacao-reserva/prd.md`](../../tasks/prd-solicitacao-reserva/prd.md) |
-| F02 | Consulta de Reserva | Permite acompanhar dados, estado final e situação da saga de uma Reservation | Must Have | `prd-ready` | [`tasks/prd-consulta-reserva/prd.md`](../../tasks/prd-consulta-reserva/prd.md) |
-| F03 | Solicitação de Pagamento | Inicia a etapa assíncrona da saga para uma Reservation válida e solicitada | Must Have | `prd-ready` | [`tasks/prd-solicitacao-pagamento/prd.md`](../../tasks/prd-solicitacao-pagamento/prd.md) |
-| F04 | Conclusão da Saga | Confirma a Reservation após autorização ou a cancela após rejeição, publicando o resultado final | Must Have | `prd-ready` | — |
+| F02 | Consulta de Reserva | Permite acompanhar dados, estado final e situação da saga de uma Reservation | Must Have | `prd-done` | [`tasks/prd-consulta-reserva/prd.md`](../../tasks/prd-consulta-reserva/prd.md) |
+| F03 | Solicitação de Pagamento | Inicia a etapa assíncrona da saga para uma Reservation válida e solicitada | Must Have | `prd-done` | [`tasks/prd-solicitacao-pagamento/prd.md`](../../tasks/prd-solicitacao-pagamento/prd.md) |
+| F04 | Conclusão da Saga | Confirma a Reservation após autorização ou a cancela após rejeição, publicando o resultado final | Must Have | `prd-ready` | [`tasks/prd-conclusao-saga/prd.md`](../../tasks/prd-conclusao-saga/prd.md) |
 | F05 | Publicação do dataset `reservation_calendar_v1` | Expõe o calendário de reservas como dataset contratado sem revelar dados internos de Booking | Should Have | `prd-ready` | [`tasks/prd-publicacao-reservation-calendar/prd.md`](../../tasks/prd-publicacao-reservation-calendar/prd.md) |
 | F06 | Resiliência da Saga | Trata timeout, retries, idempotência, resultado tardio e compensação de pagamento autorizado quando a confirmação não puder ser concluída | Should Have | `planned` | — |
 

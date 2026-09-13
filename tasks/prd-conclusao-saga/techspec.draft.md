@@ -4,30 +4,8 @@
 > **PRD de origem:** `tasks/prd-conclusao-saga/prd.md`
 > **API Contract:** `tasks/prd-conclusao-saga/api-contract.yaml` (AsyncAPI 3.1, v1.0.0, status "Aprovado")
 > **Data:** 2026-09-12
-> **Status:** Aprovado
-> **Handoff:** approved — pode alimentar o Task Creator
->
-> **Emenda de alinhamento (2026-09-13):** `Reservation.Confirm()`/`Cancel(string)` e o cálculo de
-> `confirmedAt`/`cancelledAt` no momento da publicação foram substituídos por
-> `Confirm(DateTime terminalTransitionAt)`/`Cancel(string cancellationReason, DateTime terminalTransitionAt)`,
-> que persistem `Reservation.TerminalTransitionAt` no mesmo commit da transição. A mudança decorre do
-> handoff obrigatório de `tasks/prd-publicacao-reservation-calendar/techspec.md` (EN-01) e da
-> [ADR-005](../../docs/adr/adr-005-terminal-transition-timestamp.md) (Accepted, 2026-09-13): o dataset
-> `reservation_calendar_v1` exige um `updated_at` estável que só o owner (Booking/F04) pode gravar. Os
-> trechos abaixo que descreviam "nenhuma coluna nova" e o timestamp calculado na publicação foram
-> corrigidos; nenhuma outra decisão desta TechSpec muda.
->
-> Aprovado pelo autor nesta revisão, incluindo as quatro decisões novas explicitamente confirmadas:
-> (1) consumo via `AddRmqTopicConsumer<TMessage,THandler>` (`Rmq.CloudEvents`) em vez de um
-> `BackgroundService` manual; (2) guarda de domínio via exceção em `Reservation.Confirm()`/`Cancel()`
-> como rede de segurança, com a decisão de ignorar duplicado/tardio (RN-11) tomada no handler antes de
-> chamar esses métodos; (3) `[JsonPropertyName]` explícito nos payloads publicados/consumidos, para não
-> repetir a divergência `camelCase`(docs)/`PascalCase`(implementação real) já observada em
-> `booking.reservation_requested` (F01); (4) `IReservationRepository.GetByCorrelationIdAsync` usa
-> `FirstOrDefaultAsync`, não `SingleOrDefaultAsync`, por `correlation_id` não ter índice único no
-> schema. Dependência bloqueante confirmada: o habilitador de F02 (`SagaState.Authorized/Rejected`,
-> `ReservationSaga.CancellationReason`) precisa estar disponível no ambiente de implementação; F03
-> (`IReservationRepository.UpdateAsync`) é reutilizada se disponível, mas não bloqueia.
+> **Status:** Em Revisão
+> **Handoff:** draft — não gerar Tasks
 
 ---
 
@@ -77,23 +55,18 @@ algoritmo/estado adicional.
 ### Visão Geral dos Componentes
 
 - **`LocalizeStay.Booking.Domain` (estendido):**
-  - `Reservation` ganha `TerminalTransitionAt` (nullable enquanto `Solicitada`) e os métodos
-    `Confirm(DateTime terminalTransitionAt)`/`Cancel(string cancellationReason, DateTime terminalTransitionAt)`
-    — cada um só transiciona a partir de `Solicitada` (guarda de invariante; lança
-    `InvalidOperationException` fora desse estado, como rede de segurança, já que o Application layer
-    verifica o estado antes de chamar — DP-02), normaliza o instante recebido para UTC, grava
-    `TerminalTransitionAt` uma única vez e delega a mutação da saga ao próprio `ReservationSaga`.
-    Assinatura normativa definida pelo handoff EN-01 de
-    `tasks/prd-publicacao-reservation-calendar/techspec.md` e ADR-005 (Accepted).
+  - `Reservation` ganha `Confirm()` e `Cancel(string cancellationReason)` — cada um só transiciona a
+    partir de `Solicitada` (guarda de invariante; lança `InvalidOperationException` fora desse estado,
+    como rede de segurança, já que o Application layer verifica o estado antes de chamar — DP-02) e
+    delega a mutação da saga ao próprio `ReservationSaga`.
   - `ReservationSaga` ganha `MarkAuthorized()` e `MarkRejected(string cancellationReason)` — usam
     `SagaState.Authorized`/`Rejected` e `CancellationReason`, que já são artefatos previstos e
     aprovados pela TechSpec de F02 (`tasks/prd-consulta-reserva/techspec.md` §Habilitadores
     inevitáveis) como reutilizáveis por F04, não redefinidos aqui.
-  - **Nova coluna `booking.reservations.terminal_transition_at`:** `timestamptz` nullable, com
-    constraint exigindo valor não nulo quando `status` é `confirmada`/`cancelada` e nulo quando
-    `solicitada` (ver "Modelos de Dados" e migration abaixo). O handler calcula um único
-    `DateTime.UtcNow` antes de chamar `Confirm`/`Cancel` e reutiliza o mesmo valor para persistir e
-    para o payload publicado (`confirmedAt`/`cancelledAt`), evitando dois instantes divergentes.
+  - **Nenhuma coluna nova é necessária:** nem `Reservation` nem `ReservationSaga` precisam persistir
+    o instante de confirmação/cancelamento — `confirmedAt`/`cancelledAt` do contrato são calculados no
+    momento da publicação (`DateTimeOffset.UtcNow`), mesmo padrão já usado por F01/F03 para
+    `requestedAt`, e F02 não expõe esse timestamp na consulta.
 - **`LocalizeStay.Booking.Application` (estendido):**
   - Novas portas de publicação `IReservationConfirmedPublisher`/`IReservationCancelledPublisher`
     (mesmo formato de `IReservationRequestedPublisher`/`IPaymentRequestedPublisher`).
@@ -142,11 +115,9 @@ Payment (fora do escopo) ──▶ exchange payment.payment_authorized (topic)
              ├─ null                      → log + Outcome.NotCorrelatable (DP-03)      [fim]
              ├─ Status != Solicitada      → log + Outcome.AlreadyTerminal (DP-02/RN-11) [fim]
              └─ Status == Solicitada:
-                2. terminalTransitionAt = DateTime.UtcNow (calculado uma única vez)
-                3. reservation.Confirm(terminalTransitionAt)  → Status=Confirmada,
-                   Saga.State=Authorized, TerminalTransitionAt persistido (RN-07/RN-10, EN-01/ADR-005)
-                4. repository.UpdateAsync(reservation)
-                5. publisher.PublishAsync(reservation)
+                2. reservation.Confirm()  → Status=Confirmada, Saga.State=Authorized (RN-07/RN-10)
+                3. repository.UpdateAsync(reservation)
+                4. publisher.PublishAsync(reservation)
                    ├─ sucesso → log
                    └─ falha   → log de erro, sem exceção, sem retry (RF-03/DP-04)
                                               │
@@ -229,23 +200,17 @@ public sealed class Reservation
 {
     // ... membros existentes (F01) inalterados ...
 
-    // Nullable enquanto Solicitada; não-nulo após Confirm/Cancel (EN-01/ADR-005,
-    // consumido por integration.reservation_calendar_v1 como updated_at).
-    public DateTime? TerminalTransitionAt { get; private set; }
-
-    public void Confirm(DateTime terminalTransitionAt)
+    public void Confirm()
     {
         EnsurePending();
         Status = ReservationStatus.Confirmada;
-        TerminalTransitionAt = EnsureUtc(terminalTransitionAt);
         Saga.MarkAuthorized();
     }
 
-    public void Cancel(string cancellationReason, DateTime terminalTransitionAt)
+    public void Cancel(string cancellationReason)
     {
         EnsurePending();
         Status = ReservationStatus.Cancelada;
-        TerminalTransitionAt = EnsureUtc(terminalTransitionAt);
         Saga.MarkRejected(cancellationReason);
     }
 
@@ -257,14 +222,6 @@ public sealed class Reservation
                 $"Reservation {Id} não pode transicionar a partir do estado {Status} (RN-11).");
         }
     }
-
-    private static DateTime EnsureUtc(DateTime value) =>
-        value.Kind switch
-        {
-            DateTimeKind.Utc => value,
-            DateTimeKind.Unspecified => DateTime.SpecifyKind(value, DateTimeKind.Utc),
-            _ => value.ToUniversalTime(),
-        };
 }
 
 // Domain — ReservationSaga (F02 já adiciona CancellationReason; estendido aqui)
@@ -325,8 +282,7 @@ public sealed class ConfirmReservationCommandHandler(
             return ConfirmReservationOutcome.AlreadyTerminal;
         }
 
-        var terminalTransitionAt = DateTime.UtcNow;
-        reservation.Confirm(terminalTransitionAt);
+        reservation.Confirm();
         await repository.UpdateAsync(reservation, cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation(
@@ -401,20 +357,13 @@ public sealed class PaymentAuthorizedConsumer(
 | Reservation — estado final | `Reservation.Status` (`Confirmada`/`Cancelada`, já existentes em `ReservationStatus` desde F01, sem uso até esta feature) | `Domain/Reservations/Reservation.cs` → coluna `booking.reservations.status` |
 | Reservation Saga — resultado recebido | `ReservationSaga.State` (`Authorized`/`Rejected`, adicionados por F02) | `Domain/Reservations/SagaState.cs` → coluna `booking.reservation_sagas.state` |
 | Reservation Saga — motivo de cancelamento | `ReservationSaga.CancellationReason` (adicionado por F02) | `Domain/Reservations/ReservationSaga.cs` → coluna `booking.reservation_sagas.cancellation_reason` |
-| Reservation — instante da transição terminal | `Reservation.TerminalTransitionAt` (novo, EN-01/ADR-005) | `Domain/Reservations/Reservation.cs` → coluna `booking.reservations.terminal_transition_at` |
 
-`booking.reservations.status` já aceita `confirmada`/`cancelada` desde F01 (conversão de enum já
-mapeada); `booking.reservation_sagas.state` (`varchar(32)`) e `.cancellation_reason` (`varchar(500)`)
-já foram dimensionados e adicionados pela migration habilitadora de F02 — isso pressupõe que essa
-migration já rodou no ambiente de implementação (ver "Dependências Técnicas Bloqueantes"); se não
-tiver rodado, ela deve ser aplicada como parte da disponibilização de F02, não recriada por F04.
-
-**Uma migration nova é necessária nesta TechSpec (EN-01/ADR-005):** adiciona
-`booking.reservations.terminal_transition_at` como `timestamptz` nullable e instala a constraint
-`(status = 'solicitada' AND terminal_transition_at IS NULL) OR (status IN ('confirmada', 'cancelada') AND terminal_transition_at IS NOT NULL)`.
-Não há backfill de Reservations terminais pré-existentes sem timestamp; se existirem, a migration deve
-falhar de forma segura e o operador reconcilia os dados antes do deploy. Esta coluna é o pré-requisito
-consumido por `integration.reservation_calendar_v1` (F05); F04 é o único escritor.
+**Nenhuma migration nova é necessária nesta TechSpec** — `booking.reservations.status` já aceita
+`confirmada`/`cancelada` desde F01 (conversão de enum já mapeada); `booking.reservation_sagas.state`
+(`varchar(32)`) e `.cancellation_reason` (`varchar(500)`) já foram dimensionados e adicionados pela
+migration habilitadora de F02. Isso pressupõe que essa migration já rodou no ambiente de implementação
+(ver "Dependências Técnicas Bloqueantes") — se não tiver rodado, ela deve ser aplicada como parte da
+disponibilização de F02, não recriada por F04.
 
 **`Reservation.Id` vs. `ReservationSaga.CorrelationId`:** o Domain Doc modela os dois como conceitos
 distintos (`domains/booking/domain.md` §3) — a implementação atual de F01 atribui o mesmo valor a
@@ -446,7 +395,7 @@ PRD). O contrato é inteiramente AsyncAPI.
 | `accommodationId` | `reservation.AccommodationId` |
 | `guestReference` | `reservation.GuestReference` |
 | `checkIn` / `checkOut` | `reservation.CheckIn` / `reservation.CheckOut` |
-| `confirmedAt` / `cancelledAt` | `reservation.TerminalTransitionAt` — o mesmo `DateTime.UtcNow` calculado uma vez pelo handler, persistido via `Confirm`/`Cancel` antes de publicar (ver "Modelos de Dados"; EN-01/ADR-005) |
+| `confirmedAt` / `cancelledAt` | `DateTimeOffset.UtcNow` no momento da publicação (não persistido — ver "Modelos de Dados") |
 | `cancellationReason` (só cancelamento) | `reservation.Saga.CancellationReason` (definido por `Cancel(reason)` antes da publicação) |
 
 **Mapeamento de payload do contrato → consumidor (eventos consumidos, schema provisório):**
@@ -495,7 +444,6 @@ DP-02/DP-03).
 | `services/booking/tests/LocalizeStay.Booking.UnitTests/Messaging/PaymentRejectedConsumerTests.cs` | V-01 | Test | `dotnet-testing` | Espelho |
 | `services/booking/tests/LocalizeStay.Booking.IntegrationTests/Reservations/PaymentAuthorizedConsumptionTests.cs` | V-01 | Test | `dotnet-testing` | Publica `payment.payment_authorized` simulado (Testcontainers RabbitMQ) e confere confirmação persistida + `booking.reservation_confirmed` publicado; cenários de duplicado/tardio e não correlacionável |
 | `services/booking/tests/LocalizeStay.Booking.IntegrationTests/Reservations/PaymentRejectedConsumptionTests.cs` | V-01 | Test | `dotnet-testing` | Espelho para `payment.payment_rejected`/`booking.reservation_cancelled`, incluindo `cancellationReason` |
-| `services/booking/src/4-Infra/LocalizeStay.Booking.Infra/Migrations/*_AddTerminalTransitionAtToReservations.cs` | V-01 | Migration | `dotnet-dependency-config` | Adiciona `terminal_transition_at` (`timestamptz` nullable) e a constraint de consistência solicitada-null/terminal-non-null em `booking.reservations`; nome/timestamp definitivos gerados pelo EF — EN-01/ADR-005 |
 
 **Se a implementação de F02 (habilitador) ainda não estiver disponível** quando F04 for construída,
 criar também (com a mesma especificação já aprovada em `tasks/prd-consulta-reserva/techspec.md`, não
@@ -506,16 +454,14 @@ desta TechSpec) e a migration `AddSagaCancellationReason` (ou nome equivalente j
 
 | Caminho | Fatia | Skills Aplicáveis | Alteração |
 |---------|-------|-------------------|-----------|
-| `services/booking/src/3-Domain/LocalizeStay.Booking.Domain/Reservations/Reservation.cs` | V-01 | `dotnet-architecture` | `+ TerminalTransitionAt`, `+ Confirm(DateTime terminalTransitionAt)`, `+ Cancel(string cancellationReason, DateTime terminalTransitionAt)`, `+ EnsurePending()` (guarda privada) — EN-01/ADR-005 |
+| `services/booking/src/3-Domain/LocalizeStay.Booking.Domain/Reservations/Reservation.cs` | V-01 | `dotnet-architecture` | `+ Confirm()`, `+ Cancel(string cancellationReason)`, `+ EnsurePending()` (guarda privada) |
 | `services/booking/src/3-Domain/LocalizeStay.Booking.Domain/Reservations/ReservationSaga.cs` | V-01 | `dotnet-architecture` | `+ MarkAuthorized()`, `+ MarkRejected(string cancellationReason)` (assume `CancellationReason` já existente de F02; adicionar a propriedade aqui, sem redefinir, se F02 ainda não tiver rodado) |
 | `services/booking/src/3-Domain/LocalizeStay.Booking.Domain/Reservations/SagaState.cs` | V-01 | `dotnet-architecture` | Nenhuma alteração se F02 já rodou (`Authorized`/`Rejected` já existem); adicionar os dois valores, sem redefinir, se ainda não existirem |
 | `services/booking/src/2-Application/LocalizeStay.Booking.Application/Reservations/IReservationRepository.cs` | V-01 | `dotnet-architecture` | `+ GetByCorrelationIdAsync(Guid, CancellationToken)`; `+ UpdateAsync(Reservation, CancellationToken)` só se F03 ainda não o tiver adicionado |
 | `services/booking/src/4-Infra/LocalizeStay.Booking.Infra/Persistence/ReservationRepository.cs` | V-01 | `dotnet-dependency-config` | `+ GetByCorrelationIdAsync` (`Include(Saga)`, `FirstOrDefaultAsync` por `Saga.CorrelationId` — `FirstOrDefaultAsync`, não `SingleOrDefaultAsync`, porque `correlation_id` não tem índice único no schema); `+ UpdateAsync` só se F03 ainda não o tiver adicionado |
 | `services/booking/src/4-Infra/LocalizeStay.Booking.Infra/Persistence/Configurations/ReservationSagaConfiguration.cs` | V-01 | `dotnet-dependency-config` | Nenhuma alteração se F02 já rodou (mapeamento de `CancellationReason` já existe); adicionar, sem redefinir, se ainda não existir |
-| `services/booking/src/4-Infra/LocalizeStay.Booking.Infra/Persistence/Configurations/ReservationConfiguration.cs` | V-01 | `dotnet-dependency-config` | `+` mapeamento de `TerminalTransitionAt` para `terminal_transition_at` (`timestamptz` nullable); constraint aplicada via migration — EN-01/ADR-005 |
-| `services/booking/src/4-Infra/LocalizeStay.Booking.Infra/Migrations/BookingDbContextModelSnapshot.cs` | V-01 | `dotnet-dependency-config` | Atualizado automaticamente pelo EF ao gerar a migration `AddTerminalTransitionAtToReservations` |
 | `services/booking/src/1-Services/LocalizeStay.Booking.Api/Extensions/MessagingExtensions.cs` | V-01 | `dotnet-dependency-config` | `+` 2 exchanges de publicação (`ReservationConfirmedTopology`/`ReservationCancelledTopology`) em `options.Exchanges`; `+` 2 `services.AddRmqTopicConsumer<TMessage,THandler>(...)` (payment_authorized/payment_rejected); `+` `services.AddScoped<IReservationConfirmedPublisher,...>()` e `IReservationCancelledPublisher` |
-| `services/booking/tests/LocalizeStay.Booking.UnitTests/Reservations/ReservationTests.cs` | V-01 | `dotnet-testing` | `+5` cenários: `Confirm(instant)` transiciona, marca a saga e grava `TerminalTransitionAt`; `Confirm` lança fora de `Solicitada` sem alterar estado/timestamp; `Cancel(reason, instant)` transiciona, marca a saga e grava o motivo/timestamp; `Cancel` lança fora de `Solicitada`; instante não-UTC é normalizado para UTC antes de persistir |
+| `services/booking/tests/LocalizeStay.Booking.UnitTests/Reservations/ReservationTests.cs` | V-01 | `dotnet-testing` | `+4` cenários: `Confirm` transiciona e marca a saga; `Confirm` lança fora de `Solicitada`; `Cancel` transiciona, marca a saga e grava o motivo; `Cancel` lança fora de `Solicitada` |
 
 ### Arquivos de Referência (não alterar)
 
@@ -554,8 +500,7 @@ desta TechSpec) e a migration `AddSagaCancellationReason` (ou nome equivalente j
 
 | Componente Afetado | Tipo de Impacto | Descrição & Risco | Ação Requerida |
 |--------------------|-----------------|-------------------|-----------------|
-| `booking.reservations` (Postgres) | Modificado aditivo | Nova coluna `terminal_transition_at` + constraint (EN-01/ADR-005); migration pode falhar se houver Reservation terminal pré-existente sem timestamp | Aplicar a migration desta TechSpec antes do DDL de `integration.reservation_calendar_v1` (F05); sem backfill inventado |
-| `booking.reservation_sagas` (Postgres) | Nenhum novo (reutiliza colunas de F02) | Nenhuma migration nova; risco baixo | Confirmar que a migration habilitadora de F02 já rodou no ambiente de destino |
+| `booking.reservations`/`booking.reservation_sagas` (Postgres) | Nenhum novo (reutiliza colunas de F01/F02) | Nenhuma migration nova; risco baixo | Confirmar que a migration habilitadora de F02 já rodou no ambiente de destino |
 | Vhost `/localize-stay` (RabbitMQ) | Modificado | 2 exchanges novas de publicação + 2 filas novas de consumo (com DLQ automática `<queue>.dlq` da biblioteca); risco baixo, topologia idempotente no boot | Nenhuma ação manual |
 | `IReservationRepository` (porta) | Modificado (aditivo) | `+ GetByCorrelationIdAsync`; qualquer implementação alternativa futura precisa implementá-lo | Nenhuma ação além da implementação em `ReservationRepository` |
 | `ReservationStatus.Confirmada`/`Cancelada` (enum) | Usado por escrita pela primeira vez | Definido desde F01, nunca atribuído até esta feature; sem mudança de schema | Nenhuma |
@@ -570,12 +515,9 @@ desta TechSpec) e a migration `AddSagaCancellationReason` (ou nome equivalente j
 
 ### Testes Unitários
 
-- `ReservationTests` (estendido): `Confirm(instant)`/`Cancel(reason, instant)` a partir de
-  `Solicitada` transicionam `Status`, gravam `TerminalTransitionAt = instant` e delegam corretamente a
-  `Saga.MarkAuthorized()`/`MarkRejected(reason)`; chamar qualquer um dos dois a partir de
-  `Confirmada`/`Cancelada` lança `InvalidOperationException` sem alterar `Status`/`TerminalTransitionAt`
-  (RN-11); um instante `DateTimeKind.Unspecified`/local é normalizado para UTC antes de persistir
-  (EN-01/ADR-005).
+- `ReservationTests` (estendido): `Confirm()`/`Cancel(reason)` a partir de `Solicitada` transicionam
+  `Status` e delegam corretamente a `Saga.MarkAuthorized()`/`MarkRejected(reason)`; chamar qualquer um
+  dos dois a partir de `Confirmada`/`Cancelada` lança `InvalidOperationException` (RN-11).
 - `ReservationSagaTests` (novo, ou estendido se F03 já criou o arquivo): `MarkAuthorized()` define
   `State = Authorized`; `MarkRejected(reason)` define `State = Rejected` e grava `CancellationReason`
   exatamente com o valor recebido.
@@ -662,10 +604,6 @@ independentes.
   a implementação de F03 ainda não tiver adicionado `UpdateAsync`, esta TechSpec o adiciona com a
   mesma assinatura já especificada em `tasks/prd-solicitacao-pagamento/techspec.md` — nenhuma decisão
   nova, apenas evita desenhar dois métodos equivalentes caso as duas features avancem fora de ordem.
-- **F05 (`tasks/prd-publicacao-reservation-calendar`) depende desta migration, não o inverso.** Esta
-  TechSpec (F04) é quem adiciona `booking.reservations.terminal_transition_at` e a constraint
-  associada (EN-01/ADR-005); `integration.reservation_calendar_v1` só pode ser publicada depois que
-  essa migration rodar. F04 não depende de nenhum artefato de F05 para ser implementada.
 - Nenhuma dependência de Catalog: esta feature não chama Catalog sincronamente, e o lado de consumo de
   Catalog/Notification sobre os eventos publicados aqui é responsabilidade de features próprias
   desses domínios, ainda não especificadas.
@@ -743,20 +681,6 @@ independentes.
   **Trade-offs:** nenhum dado real de negócio hoje permite duplicidade (`Reservation.Create` sempre
   gera um `correlationId` novo); esta é uma defesa barata, não uma feature nova.
 
-- **Decisão:** `Confirm`/`Cancel` recebem e persistem um `DateTime terminalTransitionAt` (calculado uma
-  única vez pelo handler, antes de chamar o método de domínio) em vez de calcular
-  `DateTimeOffset.UtcNow` somente no momento da publicação.
-  **Racional:** `tasks/prd-publicacao-reservation-calendar/techspec.md` (F05, ADR-005 Accepted)
-  precisa de um `updated_at` estável, gravado no mesmo commit da transição terminal, para
-  `integration.reservation_calendar_v1`; só o owner do aggregate (Booking/F04) pode fornecer esse
-  instante sem inventar um valor histórico. Calcular o timestamp uma única vez e reutilizá-lo tanto na
-  persistência quanto no payload publicado evita dois instantes divergentes para o mesmo evento.
-  **Trade-offs:** nenhum novo — o payload publicado (`confirmedAt`/`cancelledAt`) já precisava de um
-  timestamp; a única mudança é a origem do valor e uma coluna adicional em `booking.reservations`.
-  **Alternativas rejeitadas:** manter o cálculo apenas no momento da publicação — rejeitada porque
-  deixaria `reservation_calendar_v1` sem um `updated_at` estável e obrigaria F05 a inventar ou
-  recalcular um instante que não é dela (ver ADR-005).
-
 ### Riscos Conhecidos
 
 - **Janela de corrida entre entregas verdadeiramente concorrentes do mesmo evento** (duas mensagens
@@ -796,9 +720,6 @@ ou conformidade regulatória.
 
 ## Questões em Aberto
 
-- [x] Alinhamento com `tasks/prd-publicacao-reservation-calendar/techspec.md` (EN-01) sobre a
-  assinatura de `Confirm`/`Cancel` e a persistência de `TerminalTransitionAt` — resolvido pela emenda
-  de 2026-09-13 registrada no cabeçalho desta TechSpec; ADR-005 Accepted.
 - [ ] Confirmar, no momento da implementação, se o habilitador de F02 (`SagaState.Authorized/Rejected`,
   `ReservationSaga.CancellationReason`, migration) já está mesclado em `main` ou disponível no ambiente
   de trabalho — se não, aplicar a especificação já aprovada por F02 como parte desta implementação

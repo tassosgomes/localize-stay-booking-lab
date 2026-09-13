@@ -35,7 +35,11 @@ public sealed class ConfirmReservationCommandHandler(
             return ConfirmReservationOutcome.AlreadyTerminal;
         }
 
-        reservation.Confirm();
+        // Instante único da transição terminal (EN-01/ADR-005): persistido no
+        // mesmo commit e reusado pelo publisher, nunca recalculado.
+        var terminalTransitionAt = DateTime.UtcNow;
+
+        reservation.Confirm(terminalTransitionAt);
         await repository.UpdateAsync(reservation, cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation(

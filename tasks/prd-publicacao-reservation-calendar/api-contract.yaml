@@ -1,0 +1,293 @@
+openapi: 3.1.0
+
+info:
+  title: "Booking - Data Contract reservation_calendar_v1"
+  description: |
+    Contrato de dados para a feature Booking F05 — Publicação do dataset
+    `reservation_calendar_v1`.
+
+    **Contrato gerado a partir do PRD:** `tasks/prd-publicacao-reservation-calendar/prd.md`
+    **Data de geração:** 2026-09-12
+    **Status:** Em Revisão
+
+    Este documento usa OpenAPI 3.1 como envelope de tooling para tornar o schema
+    validável e reutilizável por consumidores, mas não define uma API HTTP:
+    `paths` permanece vazio por decisão explícita do PRD. A interface publicada
+    é uma view ou materialized view no schema PostgreSQL `integration`, protegida
+    por este Data Contract.
+
+    ## Premissas Adotadas
+    - **Tipo de interface:** snapshot atual, com uma linha por Reservation terminal;
+      não é histórico de transições, stream, evento ou API de busca.
+    - **Elegibilidade:** somente `confirmada` e `cancelada`; `solicitada` não é
+      publicada e não representa ocupação.
+    - **Identificadores:** `reservation_id` e `accommodation_id` são UUIDs estáveis
+      herdados das entidades de Booking e Catalog.
+    - **Período:** `check_in` é inclusivo e `check_out` é exclusivo; o intervalo é
+      `[check_in, check_out)`.
+    - **Nomenclatura:** campos do dataset usam `snake_case`, por ser uma interface
+      de dados SQL e seguir as colunas PostgreSQL existentes de Booking; essa
+      convenção não altera as APIs JSON de F01/F02.
+    - **Auditoria:** `created_at` registra a criação da Reservation e `updated_at`
+      registra o instante UTC da transição persistida para `confirmada` ou
+      `cancelada`. O valor deve ser gravado na mesma transação da transição,
+      permanecer estável após a publicação e não ser recalculado em cada leitura.
+      A forma física de persistir esse instante pertence à TechSpec.
+    - **Acesso:** leitura somente no schema `integration`; as roles de serviço
+      existentes (`catalog_role`, `booking_role`, `payment_role`) já recebem
+      `SELECT` nesse schema. Nenhum consumidor escreve no dataset.
+    - **Atualização:** a linha deve refletir a transição terminal persistida na
+      próxima leitura bem-sucedida; não há lote diário, republicação manual ou
+      notificação push.
+    - **Compatibilidade:** mudança incompatível de schema ou semântica publica
+      `reservation_calendar_v2` ao lado de v1; v1 não é alterado de forma
+      destrutiva.
+    - **Minimização:** o contrato não inclui Guest, Payment, preço, moeda,
+      correlation/causation IDs, detalhes da Saga ou campos internos de Booking.
+  version: "1.0.0"
+  contact:
+    name: "Domínio Booking — Localize Stay Booking Lab"
+
+# Referência documental do banco; não é um endpoint HTTP nem um servidor para
+# ser chamado por consumidores.
+servers:
+  - url: postgresql://localhost:5432/localize_stay
+    description: >-
+      Banco PostgreSQL documental da Fase 0; o dataset é lido por role no schema
+      integration, não por HTTP.
+
+# F05 não possui transporte HTTP. O mapa vazio é intencional e evita inventar
+# endpoint de consulta, filtro ou paginação fora do PRD.
+paths: {}
+
+# Acesso do dataset é controlado por role PostgreSQL, não por autenticação HTTP.
+security: []
+
+components:
+  schemas:
+    ReservationCalendarRecord:
+      type: object
+      additionalProperties: false
+      description: >-
+        Uma linha do snapshot `reservation_calendar_v1`. Representa uma Reservation
+        que já alcançou um estado terminal (`confirmada` ou `cancelada`) e mantém
+        exatamente uma linha por `reservation_id`. Uma linha `confirmada` representa
+        ocupação ativa; uma linha `cancelada` é um desfecho terminal e não bloqueia
+        datas.
+      required:
+        - reservation_id
+        - accommodation_id
+        - check_in
+        - check_out
+        - status
+        - created_at
+        - updated_at
+      properties:
+        reservation_id:
+          type: string
+          format: uuid
+          description: >-
+            Identificador público e estável da Reservation, usado como chave da
+            linha publicada. Não é um identificador técnico da tabela de origem.
+          examples:
+            - "8f14e45f-ceea-467e-a5f0-3f9e6d3d0b1e"
+          x-storage:
+            sqlType: uuid
+            nullable: false
+        accommodation_id:
+          type: string
+          format: uuid
+          description: >-
+            Identificador da Accommodation referenciada pela Reservation; a
+            referência pertence ao domínio Catalog.
+          examples:
+            - "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          x-storage:
+            sqlType: uuid
+            nullable: false
+        check_in:
+          type: string
+          format: date
+          description: >-
+            Data de início da estadia, inclusiva. Em conjunto com `check_out`,
+            forma o intervalo de ocupação `[check_in, check_out)`.
+          examples:
+            - "2026-10-10"
+          x-storage:
+            sqlType: date
+            nullable: false
+        check_out:
+          type: string
+          format: date
+          description: >-
+            Data de fim da estadia, exclusiva. Deve ser posterior a `check_in`;
+            a data não deve ser tratada como noite ocupada.
+          examples:
+            - "2026-10-13"
+          x-storage:
+            sqlType: date
+            nullable: false
+        status:
+          type: string
+          enum:
+            - confirmada
+            - cancelada
+          description: |
+            Estado terminal atual da Reservation:
+            - `confirmada`: a Reservation cria ocupação ativa no Catalog e o período
+              pode ser considerado ocupado.
+            - `cancelada`: a saga terminou sem ocupação ativa; a linha permanece no
+              snapshot para distinguir cancelamento de ausência de Reservation.
+            `solicitada` é deliberadamente excluída deste dataset. Estados terminais
+            não regridem nem alternam entre si (RN-10 e RN-11).
+          examples:
+            - "confirmada"
+          x-storage:
+            sqlType: varchar(12)
+            nullable: false
+        created_at:
+          type: string
+          format: date-time
+          description: >-
+            Instante UTC em que a Reservation foi criada. É metadado de auditoria
+            do registro publicado e não contém PII.
+          examples:
+            - "2026-09-12T14:22:00Z"
+          x-storage:
+            sqlType: timestamptz
+            nullable: false
+        updated_at:
+          type: string
+          format: date-time
+          description: >-
+            Instante UTC da transição persistida da Reservation para o estado
+            terminal atual (`confirmada` ou `cancelada`). Deve ser gravado na mesma
+            transação da mudança de estado e permanecer estável entre leituras;
+            não é o instante de leitura, refresh ou consulta do snapshot.
+          examples:
+            - "2026-09-12T14:22:05Z"
+          x-storage:
+            sqlType: timestamptz
+            nullable: false
+      examples:
+        - reservation_id: "8f14e45f-ceea-467e-a5f0-3f9e6d3d0b1e"
+          accommodation_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          check_in: "2026-10-10"
+          check_out: "2026-10-13"
+          status: "confirmada"
+          created_at: "2026-09-12T14:22:00Z"
+          updated_at: "2026-09-12T14:22:05Z"
+        - reservation_id: "0d7f2c9a-6b2e-4c17-9d55-1e8d12f3a401"
+          accommodation_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          check_in: "2026-11-02"
+          check_out: "2026-11-05"
+          status: "cancelada"
+          created_at: "2026-09-13T09:10:00Z"
+          updated_at: "2026-09-13T09:10:04Z"
+
+    ReservationCalendarSnapshot:
+      type: array
+      minItems: 0
+      description: >-
+        Coleção atual de linhas de `reservation_calendar_v1`. Uma leitura sem
+        registros elegíveis retorna `[]`, nunca `null`.
+      items:
+        $ref: "#/components/schemas/ReservationCalendarRecord"
+      examples:
+        - []
+        - - reservation_id: "8f14e45f-ceea-467e-a5f0-3f9e6d3d0b1e"
+            accommodation_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+            check_in: "2026-10-10"
+            check_out: "2026-10-13"
+            status: "confirmada"
+            created_at: "2026-09-12T14:22:00Z"
+            updated_at: "2026-09-12T14:22:05Z"
+
+x-data-contract:
+  name: reservation_calendar_v1
+  version: v1
+  status: em-revisao
+  kind: current-snapshot
+  owner: Booking
+  recordSchema:
+    $ref: "#/components/schemas/ReservationCalendarRecord"
+  snapshotSchema:
+    $ref: "#/components/schemas/ReservationCalendarSnapshot"
+  lineage:
+    sourceSchema: booking
+    sourceEntity: Reservation
+    publishedSchema: integration
+    publishedObject: reservation_calendar_v1
+    excludedSourceEntity: ReservationSaga
+  exposure:
+    type: view-or-materialized-view
+    accessMode: read-only
+    readerRoles:
+      - catalog_role
+      - booking_role
+      - payment_role
+    writer: >-
+      Nenhuma role de consumidor. O schema integration permanece sem role de
+      escrita de serviço; a criação/atualização do objeto é decisão de implantação
+      a ser detalhada na TechSpec.
+  updatePolicy:
+    trigger: terminal-reservation-persisted
+    visibility: next-successful-read
+    batch: false
+    pushNotification: false
+    history: false
+  rowSemantics:
+    primaryKey: reservation_id
+    cardinality: exactly-one-row-per-terminal-reservation
+    eligibleStatuses:
+      - confirmada
+      - cancelada
+    excludedStatuses:
+      - solicitada
+    interval: "[check_in, check_out)"
+    activeOccupancyWhen: "status = confirmada"
+  quality:
+    - id: unique-non-null-reservation
+      severity: blocking
+      rule: "reservation_id é único e não nulo"
+    - id: terminal-status-only
+      severity: blocking
+      rule: "status pertence a {confirmada, cancelada}"
+    - id: valid-period
+      severity: blocking
+      rule: "check_out é posterior a check_in"
+    - id: no-requested-reservations
+      severity: blocking
+      rule: "nenhuma Reservation solicitada aparece no snapshot"
+    - id: no-forbidden-data
+      severity: blocking
+      rule: >-
+        nenhuma coluna de Guest, Payment, preço, moeda, correlation/causation ID,
+        ReservationSaga ou detalhe interno de Booking é publicada
+    - id: terminal-state-monotonicity
+      severity: blocking
+      rule: "uma Reservation terminal não regride nem alterna de estado"
+    - id: terminal-transition-timestamp
+      severity: blocking
+      rule: "updated_at é o instante UTC da transição terminal e não muda em reprocessamentos"
+  compatibility:
+    compatibleChanges: "descrições, documentação e alterações que preservem semântica e colunas"
+    incompatibleChanges: "nova interface reservation_calendar_v2, mantendo v1 disponível"
+  prohibitedConsumers:
+    - "ler booking.* diretamente"
+    - "escrever em integration.reservation_calendar_v1"
+    - "usar cancelada como ocupação ativa"
+    - "usar o dataset para validação síncrona da criação de Reservation"
+
+x-frontend-notes: >-
+  Não há frontend nem endpoint nesta feature. Consumidores futuros devem tratar o
+  schema como fonte dos tipos, considerar apenas status=confirmada como ocupação
+  ativa, preservar o intervalo semiaberto e aceitar snapshot vazio como []. Não
+  implementar busca, paginação, polling ou atualização push a partir deste contrato.
+
+x-backend-notes: >-
+  Publicar somente no schema integration e manter a allow-list de colunas deste
+  contrato. A projeção deve refletir a Reservation depois da persistência do estado
+  terminal, manter uma linha por reservation_id e impedir regressões/duplicações.
+  Decidir na TechSpec entre view e materialized view, o mecanismo de atualização e
+  como a role de publicação opera sem conceder escrita aos consumidores.
