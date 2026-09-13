@@ -2,28 +2,30 @@
   "schema_version": 1,
   "branch": "feature/prd-publicacao-reservation-calendar",
   "original_base_ref": "e7cfa66d795b88d405aacf7368b901e87293da04",
-  "base_ref": "e7cfa66d795b88d405aacf7368b901e87293da04",
-  "target_ref": null,
-  "last_checkpoint": "HEAD",
-  "phase": "checkpointed",
+  "base_ref": "9f103c05380abc138765c259f6625092818afd37",
+  "target_ref": "9f103c05380abc138765c259f6625092818afd37",
+  "last_checkpoint": "8580f5257c3c659894a18205778eae8d65f3bbfd",
+  "phase": "complete",
   "active_task": null,
   "attempt": 1,
   "max_attempts": 3,
-  "full_attempt": 0,
+  "full_attempt": 3,
   "transport_retries": 0,
   "specs": [
     "techspec.md"
   ],
-  "delivery": "branch",
-  "validated_commit": null,
-  "validated_tree": null,
+  "delivery": "pr",
+  "validated_commit": "58be7a0",
+  "validated_tree": "6701d874513ffa39388d918b35edc0b3862e0d1b",
   "last_result": {
-    "outcome": "checkpoint_ok",
-    "task": "2.0",
-    "attempt": 1,
-    "report": "2_task_review.md",
-    "gate": "GATE: APROVADO (format, build, 6 ServiceRoles tests)",
-    "checkpoint_ref": "HEAD"
+    "outcome": "full_validation_approved",
+    "base_ref": "9f103c05380abc138765c259f6625092818afd37",
+    "target_ref": "9f103c05380abc138765c259f6625092818afd37",
+    "head": "58be7a022f492b03c8537b93fb12013c41702614",
+    "report": "prd_review.md",
+    "validated_commit": "58be7a0",
+    "validated_tree": "6701d874513ffa39388d918b35edc0b3862e0d1b",
+    "note": "Code and target remained stable after full validation; delivery authorized as a pull request to main."
   },
   "history": [
     {
@@ -105,10 +107,48 @@
     {
       "event": "task_checkpointed",
       "task": "2.0",
-      "commit": "HEAD",
+      "commit": "8580f5257c3c659894a18205778eae8d65f3bbfd",
       "report": "2_task_review.md",
       "gate": "GATE: APROVADO",
       "manual_follow_up": "OpenMetadata ingestion and UI confirmation remain external and unexecuted."
+    },
+    {
+      "event": "integration_ready",
+      "base_ref": "9f103c05380abc138765c259f6625092818afd37",
+      "target_ref": "9f103c05380abc138765c259f6625092818afd37",
+      "head": "8580f5257c3c659894a18205778eae8d65f3bbfd"
+    },
+    {
+      "event": "full_validation_rejected",
+      "attempt": 1,
+      "report": "prd_review.md",
+      "reason": "Aggregate gate exit 1 before semantic review: a Catalog integration-test project references a missing API contract outside this PRD's files.",
+      "owner": "external/base repository"
+    },
+    {
+      "event": "full_validation_restarted",
+      "attempt": 2,
+      "intervention": "Updated services/catalog/tests/LocalizeStay.Catalog.IntegrationTests/LocalizeStay.Catalog.IntegrationTests.csproj to reference tasks/archived/prd-cadastro-property/api-contract.yaml; targeted no-restore build passed."
+    },
+    {
+      "event": "full_validation_rejected",
+      "attempt": 2,
+      "report": "prd_review.md",
+      "reason": "Aggregate gate Booking integration tests fail because UpdateStateAsync does not satisfy the terminal_transition_at constraint introduced by F04.",
+      "owner": "external/F04 regression"
+    },
+    {
+      "event": "full_validation_restarted",
+      "attempt": 3,
+      "intervention": "Updated the Catalog archived-contract path and made Booking endpoint tests transition Reservations through Confirm/Cancel with terminal timestamps; full gate passed."
+    },
+    {
+      "event": "full_validation_approved",
+      "attempt": 3,
+      "report": "prd_review.md",
+      "blockers": 0,
+      "recommendations": 0,
+      "manual_follow_up": "OpenMetadata ingestion/UI confirmation remains external and non-blocking."
     }
   ]
 }
