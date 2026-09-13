@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "branch": "feature/prd-publicacao-reservation-calendar",
+  "original_base_ref": "e7cfa66d795b88d405aacf7368b901e87293da04",
+  "base_ref": "e7cfa66d795b88d405aacf7368b901e87293da04",
+  "target_ref": null,
+  "last_checkpoint": "HEAD",
+  "phase": "checkpointed",
+  "active_task": null,
+  "attempt": 1,
+  "max_attempts": 3,
+  "full_attempt": 0,
+  "transport_retries": 0,
+  "specs": [
+    "techspec.md"
+  ],
+  "delivery": "branch",
+  "validated_commit": null,
+  "validated_tree": null,
+  "last_result": {
+    "outcome": "checkpoint_ok",
+    "task": "1.0",
+    "attempt": 1,
+    "report": "1_task_review.md",
+    "gate": "GATE: APROVADO (format, build, 7 ReservationCalendarContractTests)",
+    "checkpoint_ref": "HEAD"
+  },
+  "history": [
+    {
+      "event": "branch_prepared",
+      "branch": "feature/prd-publicacao-reservation-calendar",
+      "base_ref": "e7cfa66d795b88d405aacf7368b901e87293da04"
+    },
+    {
+      "event": "task_blocked",
+      "task": "1.0",
+      "reason": "Prerequisite conflict: tasks/prd-conclusao-saga marks task 1.0 done, but the required domain API and migration are unavailable in this worktree.",
+      "evidence": [
+        "services/booking/src/3-Domain/LocalizeStay.Booking.Domain/Reservations/Reservation.cs exposes Cancel(string cancellationReason)",
+        "No source or migration in the worktree matches TerminalTransitionAt or AddTerminalTransitionAtToReservations"
+      ]
+    },
+    {
+      "event": "dependency_resolved",
+      "task": "1.0",
+      "head": "9f103c05380abc138765c259f6625092818afd37",
+      "detail": "Rebased onto origin/main; TerminalTransitionAt, terminal transition APIs, and migration are present."
+    },
+    {
+      "event": "implementation_started",
+      "task": "1.0",
+      "attempt": 1
+    },
+    {
+      "event": "implementation_complete",
+      "task": "1.0",
+      "attempt": 1,
+      "gate": "approved",
+      "files": [
+        "db/integration/001-reservation-calendar-v1.sql",
+        "services/booking/tests/LocalizeStay.Booking.IntegrationTests/Reservations/ReservationCalendarFixture.cs",
+        "services/booking/tests/LocalizeStay.Booking.IntegrationTests/Reservations/ReservationCalendarTestCollection.cs",
+        "services/booking/tests/LocalizeStay.Booking.IntegrationTests/Reservations/ReservationCalendarContractTests.cs"
+      ]
+    },
+    {
+      "event": "validation_approved",
+      "task": "1.0",
+      "report": "1_task_review.md",
+      "blockers": 0,
+      "recommendations": 0
+    },
+    {
+      "event": "task_checkpointed",
+      "task": "1.0",
+      "commit": "HEAD",
+      "report": "1_task_review.md",
+      "gate": "GATE: APROVADO"
+    }
+  ]
+}
