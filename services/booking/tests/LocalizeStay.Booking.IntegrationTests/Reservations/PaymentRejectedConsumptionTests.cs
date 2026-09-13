@@ -76,10 +76,10 @@ public sealed class PaymentRejectedConsumptionTests(CustomWebApplicationFactory 
         Assert.Equal("Rejected", persisted.SagaState);
         Assert.Equal(ExpectedReason, persisted.CancellationReason);
 
-        var consumed = await BasicGetOneAsync(eventQueue);
-        Assert.NotNull(consumed);
         var correlationIdText = created.CorrelationId.ToString();
         var reservationIdText = created.ReservationId.ToString();
+        var consumed = await WaitForEventAsync(eventQueue, correlationIdText, ConsumeTimeout);
+        Assert.NotNull(consumed);
         Assert.Equal(ReservationCancelledCloudEventType, consumed.EnvelopeType);
         Assert.Equal(correlationIdText, consumed.HeaderCorrelationId);
         Assert.Equal(correlationIdText, consumed.HeaderCausationId);
@@ -107,14 +107,15 @@ public sealed class PaymentRejectedConsumptionTests(CustomWebApplicationFactory 
         Assert.NotNull(confirmed);
         Assert.Equal("Confirmada", confirmed.Status);
 
-        // ...o resultado conflitante (rejeição tardia) é ignorado: drena o
-        // evento de confirmação já publicado e confere que nenhum
-        // cancelamento é publicado.
+        // ...o resultado conflitante (rejeição tardia) é ignorado: confere
+        // que nenhum cancelamento é publicado para esta Reservation (o
+        // exchange é compartilhado com outros testes da mesma suíte, então
+        // filtramos por correlationId em vez de exigir silêncio total da
+        // fila).
         await using var cancelledQueue = await BindReservationCancelledQueueAsync();
         await PublishPaymentRejectedAsync(created.CorrelationId);
-        await Task.Delay(TimeSpan.FromSeconds(4));
 
-        Assert.Null(await BasicGetOneAsync(cancelledQueue));
+        Assert.Null(await WaitForEventAsync(cancelledQueue, created.CorrelationId.ToString(), TimeSpan.FromSeconds(4)));
         var persisted = await ReadPersistedStateAsync(created.ReservationId);
         Assert.NotNull(persisted);
         Assert.Equal("Confirmada", persisted.Status);
@@ -129,9 +130,12 @@ public sealed class PaymentRejectedConsumptionTests(CustomWebApplicationFactory 
 
         var created = await CreateReservationAsync(client);
         await PublishPaymentRejectedAsync(Guid.NewGuid());
-        await Task.Delay(TimeSpan.FromSeconds(4));
 
-        Assert.Null(await BasicGetOneAsync(eventQueue));
+        // Nada publicado para a Reservation desta run em decorrência da
+        // correlação desconhecida (o exchange é compartilhado com outros
+        // testes da mesma suíte, então filtramos por correlationId em vez de
+        // exigir silêncio total da fila).
+        Assert.Null(await WaitForEventAsync(eventQueue, created.CorrelationId.ToString(), TimeSpan.FromSeconds(4)));
 
         var persisted = await ReadPersistedStateAsync(created.ReservationId);
         Assert.NotNull(persisted);
@@ -290,6 +294,40 @@ public sealed class PaymentRejectedConsumptionTests(CustomWebApplicationFactory 
             cancellationToken: CancellationToken.None);
 
         return new CancelledEventsQueue(connection, channel, queue.QueueName);
+    }
+
+    // Aguarda, até o timeout, uma mensagem cujo correlationId case com o
+    // esperado — descartando (drenando) qualquer mensagem de outra
+    // correlação encontrada no caminho. O exchange booking.reservation_cancelled
+    // é compartilhado por toda a suíte de testes de integração: uma
+    // publicação de outro teste pode chegar de forma assíncrona/retriada
+    // enquanto esta fila exclusiva está com o bind ativo, então "nada
+    // publicado" é verificado por ausência do correlationId em questão, não
+    // pelo silêncio total da fila.
+    private static async Task<ConsumedCancelledEvent?> WaitForEventAsync(
+        CancelledEventsQueue eventQueue, string correlationId, TimeSpan timeout)
+    {
+        var deadline = DateTimeOffset.UtcNow + timeout;
+        while (true)
+        {
+            var consumed = await BasicGetOneAsync(eventQueue);
+            if (consumed is not null)
+            {
+                if (consumed.DataCorrelationId == correlationId)
+                {
+                    return consumed;
+                }
+
+                continue;
+            }
+
+            if (DateTimeOffset.UtcNow >= deadline)
+            {
+                return null;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(250));
+        }
     }
 
     private static async Task<ConsumedCancelledEvent?> BasicGetOneAsync(CancelledEventsQueue eventQueue)
