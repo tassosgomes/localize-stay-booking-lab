@@ -57,6 +57,40 @@ public sealed class ConfirmReservationCommandHandlerTests
             p => p.PublishAsync(reservation, It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    // EN-01/ADR-005: um único DateTime.UtcNow é gravado em TerminalTransitionAt e
+    // é exatamente o instante visto pelo publisher — nunca dois UtcNow distintos.
+    [Fact]
+    public async Task HandleAsync_persists_a_single_utc_now_reused_by_the_publisher()
+    {
+        var reservation = CreateSolicitada();
+        var correlationId = reservation.Saga.CorrelationId;
+        _repository
+            .Setup(r => r.GetByCorrelationIdAsync(correlationId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(reservation);
+
+        DateTime? persistedInstant = null;
+        DateTime? publishedInstant = null;
+        _repository
+            .Setup(r => r.UpdateAsync(reservation, It.IsAny<CancellationToken>()))
+            .Callback<Reservation, CancellationToken>((r, _) => persistedInstant = r.TerminalTransitionAt)
+            .Returns(Task.CompletedTask);
+        _publisher
+            .Setup(p => p.PublishAsync(reservation, It.IsAny<CancellationToken>()))
+            .Callback<Reservation, CancellationToken>((r, _) => publishedInstant = r.TerminalTransitionAt)
+            .Returns(Task.CompletedTask);
+
+        var before = DateTime.UtcNow;
+        await CreateHandler().HandleAsync(
+            new ConfirmReservationCommand(correlationId), CancellationToken.None);
+        var after = DateTime.UtcNow;
+
+        reservation.TerminalTransitionAt.Should().NotBeNull();
+        reservation.TerminalTransitionAt!.Value.Kind.Should().Be(DateTimeKind.Utc);
+        reservation.TerminalTransitionAt!.Value.Should().BeOnOrAfter(before).And.BeOnOrBefore(after);
+        persistedInstant.Should().Be(reservation.TerminalTransitionAt);
+        publishedInstant.Should().Be(reservation.TerminalTransitionAt);
+    }
+
     [Fact]
     public async Task HandleAsync_with_unknown_correlation_returns_NotCorrelatable_without_effects()
     {
@@ -82,13 +116,14 @@ public sealed class ConfirmReservationCommandHandlerTests
         ReservationStatus terminal)
     {
         var reservation = CreateSolicitada();
+        var alreadyTerminalAt = DateTime.UtcNow.AddMinutes(-5);
         if (terminal == ReservationStatus.Confirmada)
         {
-            reservation.Confirm();
+            reservation.Confirm(alreadyTerminalAt);
         }
         else
         {
-            reservation.Cancel("Pagamento rejeitado pela simulação de Payment.");
+            reservation.Cancel("Pagamento rejeitado pela simulação de Payment.", alreadyTerminalAt);
         }
 
         var correlationId = reservation.Saga.CorrelationId;
@@ -101,6 +136,7 @@ public sealed class ConfirmReservationCommandHandlerTests
 
         outcome.Should().Be(ConfirmReservationOutcome.AlreadyTerminal);
         reservation.Status.Should().Be(terminal);
+        reservation.TerminalTransitionAt.Should().Be(alreadyTerminalAt);
         _repository.Verify(
             r => r.UpdateAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()), Times.Never);
         _publisher.Verify(

@@ -183,15 +183,89 @@ public sealed class ReservationTests
     private static Reservation CreateSolicitada() =>
         Reservation.Create(AccommodationId, "guest-ref", CheckIn, CheckIn.AddDays(2), 2, ValidFacts);
 
+    private const string RejectionReason = "Pagamento rejeitado pela simulação de Payment.";
+
+    private static readonly DateTime TerminalTransitionAt =
+        new(2026, 9, 13, 18, 30, 45, DateTimeKind.Utc);
+
+    private static Reservation CreateTerminal(ReservationStatus terminal)
+    {
+        var reservation = CreateSolicitada();
+        if (terminal == ReservationStatus.Confirmada)
+        {
+            reservation.Confirm(TerminalTransitionAt);
+        }
+        else
+        {
+            reservation.Cancel(RejectionReason, TerminalTransitionAt);
+        }
+
+        return reservation;
+    }
+
     [Fact]
     public void Confirm_from_solicitada_transitions_to_confirmada_and_marks_saga_authorized()
     {
         var reservation = CreateSolicitada();
 
-        reservation.Confirm();
+        reservation.Confirm(TerminalTransitionAt);
 
         Assert.Equal(ReservationStatus.Confirmada, reservation.Status);
         Assert.Equal(SagaState.Authorized, reservation.Saga.State);
+    }
+
+    [Fact]
+    public void Create_leaves_terminal_transition_at_null_while_solicitada()
+    {
+        var reservation = CreateSolicitada();
+
+        Assert.Null(reservation.TerminalTransitionAt);
+    }
+
+    [Fact]
+    public void Confirm_records_the_received_instant_as_terminal_transition_at_in_utc()
+    {
+        var reservation = CreateSolicitada();
+
+        reservation.Confirm(TerminalTransitionAt);
+
+        Assert.Equal(TerminalTransitionAt, reservation.TerminalTransitionAt);
+        Assert.Equal(DateTimeKind.Utc, reservation.TerminalTransitionAt!.Value.Kind);
+    }
+
+    [Fact]
+    public void Cancel_records_the_received_instant_as_terminal_transition_at_in_utc()
+    {
+        var reservation = CreateSolicitada();
+
+        reservation.Cancel(RejectionReason, TerminalTransitionAt);
+
+        Assert.Equal(TerminalTransitionAt, reservation.TerminalTransitionAt);
+        Assert.Equal(DateTimeKind.Utc, reservation.TerminalTransitionAt!.Value.Kind);
+    }
+
+    [Fact]
+    public void Confirm_with_unspecified_kind_instant_assumes_utc_without_shifting_the_instant()
+    {
+        var reservation = CreateSolicitada();
+        var unspecified = new DateTime(2026, 9, 13, 18, 30, 45, DateTimeKind.Unspecified);
+
+        reservation.Confirm(unspecified);
+
+        Assert.Equal(DateTimeKind.Utc, reservation.TerminalTransitionAt!.Value.Kind);
+        Assert.Equal(unspecified.Ticks, reservation.TerminalTransitionAt!.Value.Ticks);
+    }
+
+    [Fact]
+    public void Cancel_with_local_kind_instant_normalizes_terminal_transition_at_to_utc()
+    {
+        var reservation = CreateSolicitada();
+        var local = new DateTimeOffset(2026, 9, 13, 15, 30, 45, TimeSpan.FromHours(-3)).LocalDateTime;
+
+        reservation.Cancel(RejectionReason, local);
+
+        Assert.Equal(DateTimeKind.Utc, reservation.TerminalTransitionAt!.Value.Kind);
+        Assert.Equal(local.ToUniversalTime(), reservation.TerminalTransitionAt);
     }
 
     [Theory]
@@ -199,30 +273,37 @@ public sealed class ReservationTests
     [InlineData(ReservationStatus.Cancelada)]
     public void Confirm_from_terminal_state_throws_InvalidOperationException(ReservationStatus terminal)
     {
-        var reservation = CreateSolicitada();
-        if (terminal == ReservationStatus.Confirmada)
-        {
-            reservation.Confirm();
-        }
-        else
-        {
-            reservation.Cancel("motivo");
-        }
+        var reservation = CreateTerminal(terminal);
 
-        Assert.Throws<InvalidOperationException>(() => reservation.Confirm());
+        Assert.Throws<InvalidOperationException>(
+            () => reservation.Confirm(TerminalTransitionAt.AddMinutes(5)));
+    }
+
+    [Theory]
+    [InlineData(ReservationStatus.Confirmada)]
+    [InlineData(ReservationStatus.Cancelada)]
+    public void Confirm_from_terminal_state_preserves_status_and_terminal_transition_at(
+        ReservationStatus terminal)
+    {
+        var reservation = CreateTerminal(terminal);
+
+        Assert.Throws<InvalidOperationException>(
+            () => reservation.Confirm(TerminalTransitionAt.AddMinutes(5)));
+
+        Assert.Equal(terminal, reservation.Status);
+        Assert.Equal(TerminalTransitionAt, reservation.TerminalTransitionAt);
     }
 
     [Fact]
     public void Cancel_from_solicitada_transitions_to_cancelada_marks_saga_rejected_and_records_reason()
     {
         var reservation = CreateSolicitada();
-        const string reason = "Pagamento rejeitado pela simulação de Payment.";
 
-        reservation.Cancel(reason);
+        reservation.Cancel(RejectionReason, TerminalTransitionAt);
 
         Assert.Equal(ReservationStatus.Cancelada, reservation.Status);
         Assert.Equal(SagaState.Rejected, reservation.Saga.State);
-        Assert.Equal(reason, reservation.Saga.CancellationReason);
+        Assert.Equal(RejectionReason, reservation.Saga.CancellationReason);
     }
 
     [Theory]
@@ -230,16 +311,24 @@ public sealed class ReservationTests
     [InlineData(ReservationStatus.Cancelada)]
     public void Cancel_from_terminal_state_throws_InvalidOperationException(ReservationStatus terminal)
     {
-        var reservation = CreateSolicitada();
-        if (terminal == ReservationStatus.Confirmada)
-        {
-            reservation.Confirm();
-        }
-        else
-        {
-            reservation.Cancel("motivo");
-        }
+        var reservation = CreateTerminal(terminal);
 
-        Assert.Throws<InvalidOperationException>(() => reservation.Cancel("outro motivo"));
+        Assert.Throws<InvalidOperationException>(
+            () => reservation.Cancel("outro motivo", TerminalTransitionAt.AddMinutes(5)));
+    }
+
+    [Theory]
+    [InlineData(ReservationStatus.Confirmada)]
+    [InlineData(ReservationStatus.Cancelada)]
+    public void Cancel_from_terminal_state_preserves_status_and_terminal_transition_at(
+        ReservationStatus terminal)
+    {
+        var reservation = CreateTerminal(terminal);
+
+        Assert.Throws<InvalidOperationException>(
+            () => reservation.Cancel("outro motivo", TerminalTransitionAt.AddMinutes(5)));
+
+        Assert.Equal(terminal, reservation.Status);
+        Assert.Equal(TerminalTransitionAt, reservation.TerminalTransitionAt);
     }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -66,6 +67,12 @@ public sealed class PaymentAuthorizedConsumptionTests(CustomWebApplicationFactor
         Assert.Equal("Authorized", persisted.SagaState);
         Assert.Null(persisted.CancellationReason);
 
+        // EN-01/ADR-005: a migration aplicou (coluna + constraint) e o instante
+        // terminal está gravado em UTC no Postgres real.
+        Assert.Equal(1, await CountTerminalTransitionConstraintAsync());
+        var terminalTransitionAt = await ReadTerminalTransitionAtAsync(created.ReservationId);
+        Assert.Equal(terminalTransitionAt, persisted.TerminalTransitionAt);
+
         var correlationIdText = created.CorrelationId.ToString();
         var reservationIdText = created.ReservationId.ToString();
         var consumed = await WaitForEventAsync(eventQueue, correlationIdText, ConsumeTimeout);
@@ -81,6 +88,13 @@ public sealed class PaymentAuthorizedConsumptionTests(CustomWebApplicationFactor
         Assert.Equal("2026-10-10", consumed.DataCheckIn);
         Assert.Equal("2026-10-13", consumed.DataCheckOut);
         Assert.False(string.IsNullOrWhiteSpace(consumed.DataConfirmedAt));
+
+        // confirmedAt publicado é exatamente o instante persistido (EN-01/ADR-005),
+        // comparado na precisão de microssegundos do timestamptz.
+        var publishedConfirmedAt = DateTimeOffset.Parse(
+            consumed.DataConfirmedAt!, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+        Assert.Equal(
+            ToMicroseconds(terminalTransitionAt), ToMicroseconds(publishedConfirmedAt.UtcDateTime));
     }
 
     [Fact]
@@ -93,6 +107,7 @@ public sealed class PaymentAuthorizedConsumptionTests(CustomWebApplicationFactor
         var correlationIdText = created.CorrelationId.ToString();
         await PublishPaymentAuthorizedAsync(created.CorrelationId);
         Assert.NotNull(await WaitForTerminalStatusAsync(created.ReservationId));
+        var terminalTransitionAt = await ReadTerminalTransitionAtAsync(created.ReservationId);
 
         // Consome (e remove) o único evento final esperado.
         Assert.NotNull(await WaitForEventAsync(eventQueue, correlationIdText, ConsumeTimeout));
@@ -108,6 +123,7 @@ public sealed class PaymentAuthorizedConsumptionTests(CustomWebApplicationFactor
         Assert.NotNull(persisted);
         Assert.Equal("Confirmada", persisted.Status);
         Assert.Equal("Authorized", persisted.SagaState);
+        Assert.Equal(terminalTransitionAt, persisted.TerminalTransitionAt);
     }
 
     [Fact]
@@ -125,11 +141,13 @@ public sealed class PaymentAuthorizedConsumptionTests(CustomWebApplicationFactor
         // exigir silêncio total da fila).
         Assert.Null(await WaitForEventAsync(eventQueue, created.CorrelationId.ToString(), TimeSpan.FromSeconds(4)));
 
-        // ...e a Reservation existente permanece solicitada/pendente.
+        // ...e a Reservation existente permanece solicitada/pendente, sem instante
+        // terminal (EN-01/ADR-005).
         var persisted = await ReadPersistedStateAsync(created.ReservationId);
         Assert.NotNull(persisted);
         Assert.Equal("Solicitada", persisted.Status);
         Assert.Equal("PaymentPending", persisted.SagaState);
+        Assert.Null(persisted.TerminalTransitionAt);
     }
 
     private async Task<HttpClient> CreateClientWiredToFakeCatalogAsync()
@@ -194,7 +212,8 @@ public sealed class PaymentAuthorizedConsumptionTests(CustomWebApplicationFactor
         [property: System.Text.Json.Serialization.JsonPropertyName("correlationId")] Guid CorrelationId,
         [property: System.Text.Json.Serialization.JsonPropertyName("authorizedAt")] DateTimeOffset AuthorizedAt);
 
-    private sealed record PersistedState(string Status, string SagaState, string? CancellationReason);
+    private sealed record PersistedState(
+        string Status, string SagaState, string? CancellationReason, DateTime? TerminalTransitionAt);
 
     private async Task<PersistedState?> ReadPersistedStateAsync(Guid reservationId)
     {
@@ -207,8 +226,34 @@ public sealed class PaymentAuthorizedConsumptionTests(CustomWebApplicationFactor
         return reservation is null
             ? null
             : new PersistedState(
-                reservation.Status.ToString(), reservation.Saga.State.ToString(), reservation.Saga.CancellationReason);
+                reservation.Status.ToString(),
+                reservation.Saga.State.ToString(),
+                reservation.Saga.CancellationReason,
+                reservation.TerminalTransitionAt);
     }
+
+    // Lê a coluna terminal_transition_at direto do Postgres real: a query só
+    // compila se a migration AddTerminalTransitionAtToReservations tiver aplicado.
+    private async Task<DateTime> ReadTerminalTransitionAtAsync(Guid reservationId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
+        return await dbContext.Database.SqlQueryRaw<DateTime>(
+            "SELECT terminal_transition_at AS \"Value\" FROM booking.reservations " +
+            "WHERE id = {0} AND terminal_transition_at IS NOT NULL",
+            reservationId).SingleAsync();
+    }
+
+    private async Task<int> CountTerminalTransitionConstraintAsync()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
+        return await dbContext.Database.SqlQueryRaw<int>(
+            "SELECT count(*)::int AS \"Value\" FROM pg_constraint " +
+            "WHERE conname = 'ck_reservations_terminal_transition_at'").SingleAsync();
+    }
+
+    private static long ToMicroseconds(DateTime instant) => instant.Ticks / 10;
 
     private async Task<PersistedState?> WaitForTerminalStatusAsync(Guid reservationId)
     {

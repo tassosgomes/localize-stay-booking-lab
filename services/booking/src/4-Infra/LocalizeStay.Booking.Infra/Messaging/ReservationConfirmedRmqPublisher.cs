@@ -38,7 +38,9 @@ public sealed class ReservationConfirmedRmqPublisher(
             reservation.GuestReference,
             reservation.CheckIn,
             reservation.CheckOut,
-            DateTimeOffset.UtcNow);
+            // confirmedAt é exatamente o instante terminal já persistido
+            // (EN-01/ADR-005), nunca um novo UtcNow.
+            new DateTimeOffset(reservation.TerminalTransitionAt!.Value, TimeSpan.Zero));
 
         logger.LogDebug(
             "Publicando {CloudEventType} na exchange {Exchange} com routing key {RoutingKey} " +

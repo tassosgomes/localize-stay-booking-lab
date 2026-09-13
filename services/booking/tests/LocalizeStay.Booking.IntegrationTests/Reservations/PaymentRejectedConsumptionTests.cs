@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -76,6 +77,12 @@ public sealed class PaymentRejectedConsumptionTests(CustomWebApplicationFactory 
         Assert.Equal("Rejected", persisted.SagaState);
         Assert.Equal(ExpectedReason, persisted.CancellationReason);
 
+        // EN-01/ADR-005: a migration aplicou (coluna + constraint) e o instante
+        // terminal está gravado em UTC no Postgres real.
+        Assert.Equal(1, await CountTerminalTransitionConstraintAsync());
+        var terminalTransitionAt = await ReadTerminalTransitionAtAsync(created.ReservationId);
+        Assert.Equal(terminalTransitionAt, persisted.TerminalTransitionAt);
+
         var correlationIdText = created.CorrelationId.ToString();
         var reservationIdText = created.ReservationId.ToString();
         var consumed = await WaitForEventAsync(eventQueue, correlationIdText, ConsumeTimeout);
@@ -92,6 +99,13 @@ public sealed class PaymentRejectedConsumptionTests(CustomWebApplicationFactory 
         Assert.Equal("2026-11-05", consumed.DataCheckOut);
         Assert.False(string.IsNullOrWhiteSpace(consumed.DataCancelledAt));
         Assert.Equal(ExpectedReason, consumed.DataCancellationReason);
+
+        // cancelledAt publicado é exatamente o instante persistido (EN-01/ADR-005),
+        // comparado na precisão de microssegundos do timestamptz.
+        var publishedCancelledAt = DateTimeOffset.Parse(
+            consumed.DataCancelledAt!, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+        Assert.Equal(
+            ToMicroseconds(terminalTransitionAt), ToMicroseconds(publishedCancelledAt.UtcDateTime));
     }
 
     [Fact]
@@ -106,6 +120,7 @@ public sealed class PaymentRejectedConsumptionTests(CustomWebApplicationFactory 
         var confirmed = await WaitForTerminalStatusAsync(created.ReservationId);
         Assert.NotNull(confirmed);
         Assert.Equal("Confirmada", confirmed.Status);
+        var terminalTransitionAt = await ReadTerminalTransitionAtAsync(created.ReservationId);
 
         // ...o resultado conflitante (rejeição tardia) é ignorado: confere
         // que nenhum cancelamento é publicado para esta Reservation (o
@@ -120,6 +135,7 @@ public sealed class PaymentRejectedConsumptionTests(CustomWebApplicationFactory 
         Assert.NotNull(persisted);
         Assert.Equal("Confirmada", persisted.Status);
         Assert.Equal("Authorized", persisted.SagaState);
+        Assert.Equal(terminalTransitionAt, persisted.TerminalTransitionAt);
     }
 
     [Fact]
@@ -141,6 +157,7 @@ public sealed class PaymentRejectedConsumptionTests(CustomWebApplicationFactory 
         Assert.NotNull(persisted);
         Assert.Equal("Solicitada", persisted.Status);
         Assert.Equal("PaymentPending", persisted.SagaState);
+        Assert.Null(persisted.TerminalTransitionAt);
     }
 
     private async Task<HttpClient> CreateClientWiredToFakeCatalogAsync()
@@ -225,7 +242,8 @@ public sealed class PaymentRejectedConsumptionTests(CustomWebApplicationFactory 
         [property: JsonPropertyName("correlationId")] Guid CorrelationId,
         [property: JsonPropertyName("authorizedAt")] DateTimeOffset AuthorizedAt);
 
-    private sealed record PersistedState(string Status, string SagaState, string? CancellationReason);
+    private sealed record PersistedState(
+        string Status, string SagaState, string? CancellationReason, DateTime? TerminalTransitionAt);
 
     private async Task<PersistedState?> ReadPersistedStateAsync(Guid reservationId)
     {
@@ -238,8 +256,34 @@ public sealed class PaymentRejectedConsumptionTests(CustomWebApplicationFactory 
         return reservation is null
             ? null
             : new PersistedState(
-                reservation.Status.ToString(), reservation.Saga.State.ToString(), reservation.Saga.CancellationReason);
+                reservation.Status.ToString(),
+                reservation.Saga.State.ToString(),
+                reservation.Saga.CancellationReason,
+                reservation.TerminalTransitionAt);
     }
+
+    // Lê a coluna terminal_transition_at direto do Postgres real: a query só
+    // compila se a migration AddTerminalTransitionAtToReservations tiver aplicado.
+    private async Task<DateTime> ReadTerminalTransitionAtAsync(Guid reservationId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
+        return await dbContext.Database.SqlQueryRaw<DateTime>(
+            "SELECT terminal_transition_at AS \"Value\" FROM booking.reservations " +
+            "WHERE id = {0} AND terminal_transition_at IS NOT NULL",
+            reservationId).SingleAsync();
+    }
+
+    private async Task<int> CountTerminalTransitionConstraintAsync()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
+        return await dbContext.Database.SqlQueryRaw<int>(
+            "SELECT count(*)::int AS \"Value\" FROM pg_constraint " +
+            "WHERE conname = 'ck_reservations_terminal_transition_at'").SingleAsync();
+    }
+
+    private static long ToMicroseconds(DateTime instant) => instant.Ticks / 10;
 
     private async Task<PersistedState?> WaitForTerminalStatusAsync(Guid reservationId)
     {

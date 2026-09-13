@@ -56,6 +56,10 @@ public sealed class Reservation
 
     public DateTime CreatedAt { get; private set; }
 
+    // Instante UTC em que a Reservation entrou no estado terminal atual
+    // (EN-01/ADR-005): nulo enquanto solicitada, obrigatório após a transição.
+    public DateTime? TerminalTransitionAt { get; private set; }
+
     public ReservationSaga Saga { get; private set; } = null!;
 
     public static Reservation Create(
@@ -120,19 +124,28 @@ public sealed class Reservation
         }
     }
 
-    public void Confirm()
+    public void Confirm(DateTime terminalTransitionAt)
     {
         EnsurePending();
+        TerminalTransitionAt = NormalizeToUtc(terminalTransitionAt);
         Status = ReservationStatus.Confirmada;
         Saga.MarkAuthorized();
     }
 
-    public void Cancel(string cancellationReason)
+    public void Cancel(string cancellationReason, DateTime terminalTransitionAt)
     {
         EnsurePending();
+        TerminalTransitionAt = NormalizeToUtc(terminalTransitionAt);
         Status = ReservationStatus.Cancelada;
         Saga.MarkRejected(cancellationReason);
     }
+
+    // O instante terminal é sempre armazenado em UTC (ADR-005): um instante sem
+    // Kind é assumido como UTC; qualquer outro Kind é convertido.
+    private static DateTime NormalizeToUtc(DateTime instant) =>
+        instant.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(instant, DateTimeKind.Utc)
+            : instant.ToUniversalTime();
 
     private void EnsurePending()
     {
