@@ -265,16 +265,18 @@ jobs:
       CATALOG_DB_PASSWORD: ${{ secrets.CATALOG_DB_PASSWORD }}
       BOOKING_DB_PASSWORD: ${{ secrets.BOOKING_DB_PASSWORD }}
       PAYMENT_DB_PASSWORD: ${{ secrets.PAYMENT_DB_PASSWORD }}
-      # Runner self-hosted não roda como root (sem docker.sock, sem
-      # privilégio) — /usr/share/dotnet (default do setup-dotnet) não é
-      # gravável; instala num diretório do próprio workspace do job.
-      DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet-migrate
     steps:
       - uses: actions/checkout@v7
         if: matrix.service != 'notification-worker'
 
       - uses: actions/setup-dotnet@v6
         if: matrix.service != 'notification-worker'
+        # Runner self-hosted não roda como root (sem docker.sock, sem
+        # privilégio) — /usr/share/dotnet (default do setup-dotnet) não é
+        # gravável; instala num diretório do próprio workspace do job.
+        # (runner.temp só é resolvível em env de step, não de job.)
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet-migrate
         with:
           dotnet-version: '10.0.x'
 
