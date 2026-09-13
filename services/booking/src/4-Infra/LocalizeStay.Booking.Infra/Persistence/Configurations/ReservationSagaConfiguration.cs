@@ -20,5 +20,7 @@ public sealed class ReservationSagaConfiguration : IEntityTypeConfiguration<Rese
         builder.Property(saga => saga.PaymentRequestSentAt)
             .HasColumnName("payment_request_sent_at")
             .HasColumnType("timestamptz");
+        builder.Property(saga => saga.CancellationReason).HasColumnName("cancellation_reason")
+            .HasColumnType("varchar(500)");
     }
 }

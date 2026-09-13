@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 slice_type: enabling
 verification_type: static
 parallelizable: true
@@ -99,10 +99,10 @@ TechSpec).
 
 ## Subtarefas
 
-- [ ] 1.1 Adicionar `SagaState.Authorized` e `SagaState.Rejected` (sem nenhuma lógica associada)
-- [ ] 1.2 Adicionar `ReservationSaga.CancellationReason` (string?, setter privado, sem mutator público)
-- [ ] 1.3 Mapear `cancellation_reason` (`varchar(500)`, nullable) em `ReservationSagaConfiguration`
-- [ ] 1.4 Gerar a migration `AddSagaCancellationReason` via `dotnet ef migrations add`, aplicar contra
+- [x] 1.1 Adicionar `SagaState.Authorized` e `SagaState.Rejected` (sem nenhuma lógica associada)
+- [x] 1.2 Adicionar `ReservationSaga.CancellationReason` (string?, setter privado, sem mutator público)
+- [x] 1.3 Mapear `cancellation_reason` (`varchar(500)`, nullable) em `ReservationSagaConfiguration`
+- [x] 1.4 Gerar a migration `AddSagaCancellationReason` via `dotnet ef migrations add`, aplicar contra
       um Postgres efêmero e confirmar `dotnet build`/`gate.sh --static` verdes
 
 ## Sequenciamento

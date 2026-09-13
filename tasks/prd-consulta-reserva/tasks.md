@@ -95,7 +95,7 @@ completo — fecha RF-01 nos dois lados.
 
 ## Tarefas
 
-- [ ] 1.0 Completar vocabulário de `SagaState`/`CancellationReason` no schema `booking` (EN-01 backend)
+- [x] 1.0 Completar vocabulário de `SagaState`/`CancellationReason` no schema `booking` (EN-01 backend)
 - [ ] 2.0 Endpoint completo `GET /v1/reservations/{reservationId}`: 5 cenários do AC de RF-01 (V-01 backend)
 - [ ] 3.0 Preparar integração frontend tipada com o contrato desta feature (EN-01 frontend)
 - [ ] 4.0 Consultar reserva pela interface acessível: 5 cenários + 500 (V-01 frontend)
