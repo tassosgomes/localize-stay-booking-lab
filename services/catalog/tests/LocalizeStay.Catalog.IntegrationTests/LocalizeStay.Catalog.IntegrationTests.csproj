@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="../../../../tasks/prd-cadastro-property/api-contract.yaml" CopyToOutputDirectory="PreserveNewest" Link="Contracts/api-contract.yaml" />
+    <Content Include="../../../../tasks/archived/prd-cadastro-property/api-contract.yaml" CopyToOutputDirectory="PreserveNewest" Link="Contracts/api-contract.yaml" />
   </ItemGroup>
 
 </Project>
