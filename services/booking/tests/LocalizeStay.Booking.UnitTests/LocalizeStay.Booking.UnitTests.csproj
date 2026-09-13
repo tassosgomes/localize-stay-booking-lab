@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AwesomeAssertions" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Moq" />
     <PackageReference Include="xunit" />
@@ -12,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../src/1-Services/LocalizeStay.Booking.Api/LocalizeStay.Booking.Api.csproj" />
     <ProjectReference Include="../../src/2-Application/LocalizeStay.Booking.Application/LocalizeStay.Booking.Application.csproj" />
     <ProjectReference Include="../../src/3-Domain/LocalizeStay.Booking.Domain/LocalizeStay.Booking.Domain.csproj" />
     <ProjectReference Include="../../src/4-Infra/LocalizeStay.Booking.Infra/LocalizeStay.Booking.Infra.csproj" />

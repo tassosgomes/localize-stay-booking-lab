@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 slice_type: vertical
 verification_type: behavioral
 parallelizable: false
@@ -121,11 +121,11 @@ nova nesta feature.
 
 ## Subtarefas
 
-- [ ] 1.1 Estender `Reservation`/`ReservationSaga` com as transições, guardas e testes unitários, reutilizando sem alteração o vocabulário/migration de F02.
-- [ ] 1.2 Criar portas, commands/outcomes, handlers e `GetByCorrelationIdAsync`; registrar os handlers no `ApplicationExtensions` e cobrir sucesso, não correlação, estado terminal e publisher com exceção.
-- [ ] 1.3 Criar publishers CloudEvents e adaptar `ReservationRepository`; registrar exchanges/publishers, topologias de consumo e `AddRmqTopicConsumer` no wiring da API.
-- [ ] 1.4 Criar os dois consumers defensivos e seus testes; validar dispatch, ausência de dispatch para GUID inválido e motivo fixo de rejeição.
-- [ ] 1.5 Criar os dois testes de integração com Postgres/RabbitMQ reais, incluindo sucesso, payload/headers, persistência, duplicidade/tardio/conflito/não correlação e o gate focalizado.
+- [x] 1.1 Estender `Reservation`/`ReservationSaga` com as transições, guardas e testes unitários, reutilizando sem alteração o vocabulário/migration de F02.
+- [x] 1.2 Criar portas, commands/outcomes, handlers e `GetByCorrelationIdAsync`; registrar os handlers no `ApplicationExtensions` e cobrir sucesso, não correlação, estado terminal e publisher com exceção.
+- [x] 1.3 Criar publishers CloudEvents e adaptar `ReservationRepository`; registrar exchanges/publishers, topologias de consumo e `AddRmqTopicConsumer` no wiring da API.
+- [x] 1.4 Criar os dois consumers defensivos e seus testes; validar dispatch, ausência de dispatch para GUID inválido e motivo fixo de rejeição.
+- [x] 1.5 Criar os dois testes de integração com Postgres/RabbitMQ reais, incluindo sucesso, payload/headers, persistência, duplicidade/tardio/conflito/não correlação e o gate focalizado.
 
 ## Sequenciamento
 

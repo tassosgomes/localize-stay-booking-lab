@@ -119,4 +119,27 @@ public sealed class Reservation
             throw new QuantidadeHospedesInvalidaException();
         }
     }
+
+    public void Confirm()
+    {
+        EnsurePending();
+        Status = ReservationStatus.Confirmada;
+        Saga.MarkAuthorized();
+    }
+
+    public void Cancel(string cancellationReason)
+    {
+        EnsurePending();
+        Status = ReservationStatus.Cancelada;
+        Saga.MarkRejected(cancellationReason);
+    }
+
+    private void EnsurePending()
+    {
+        if (Status != ReservationStatus.Solicitada)
+        {
+            throw new InvalidOperationException(
+                $"Reservation {Id} não pode transicionar a partir do estado {Status} (RN-11).");
+        }
+    }
 }

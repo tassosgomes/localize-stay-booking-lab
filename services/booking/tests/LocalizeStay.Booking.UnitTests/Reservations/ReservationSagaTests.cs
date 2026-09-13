@@ -49,4 +49,26 @@ public sealed class ReservationSagaTests
 
         Assert.Equal(SagaState.PaymentPending, saga.State);
     }
+
+    [Fact]
+    public void MarkAuthorized_sets_state_to_Authorized()
+    {
+        var saga = CreateSaga();
+
+        saga.MarkAuthorized();
+
+        Assert.Equal(SagaState.Authorized, saga.State);
+    }
+
+    [Fact]
+    public void MarkRejected_sets_state_to_Rejected_and_records_exact_reason()
+    {
+        var saga = CreateSaga();
+        const string reason = "Pagamento rejeitado pela simulação de Payment.";
+
+        saga.MarkRejected(reason);
+
+        Assert.Equal(SagaState.Rejected, saga.State);
+        Assert.Equal(reason, saga.CancellationReason);
+    }
 }
