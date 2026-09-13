@@ -56,7 +56,7 @@ V-01 (TechSpec §Habilitadores inevitáveis) — não há segunda fatia nesta fe
 
 ## Tarefas
 
-- [ ] 1.0 Solicitação automática de pagamento: publisher, registro na Saga e testes (V-01)
+- [x] 1.0 Solicitação automática de pagamento: publisher, registro na Saga e testes (V-01)
 
 ## Rastreabilidade US → Tasks
 
