@@ -14,6 +14,7 @@ public sealed class RequestReservationCommandHandler(
     ICatalogAvailabilityClient catalogAvailabilityClient,
     IReservationRepository reservationRepository,
     IReservationRequestedPublisher publisher,
+    IPaymentRequestedPublisher paymentRequestedPublisher,
     ILogger<RequestReservationCommandHandler> logger) : ICommandHandler<RequestReservationCommand, Reservation>
 {
     public async Task<Reservation> HandleAsync(
@@ -92,6 +93,26 @@ public sealed class RequestReservationCommandHandler(
                 "a Reservation permanece criada (correlationId={CorrelationId})",
                 reservation.Id,
                 reservation.Id);
+        }
+
+        try
+        {
+            await paymentRequestedPublisher.PublishAsync(reservation, cancellationToken).ConfigureAwait(false);
+
+            reservation.Saga.MarkPaymentRequestSent(DateTime.UtcNow);
+            await reservationRepository.UpdateAsync(reservation, cancellationToken).ConfigureAwait(false);
+
+            logger.LogInformation(
+                "Evento booking.payment_requested publicado para a Reservation {ReservationId} " +
+                "(correlationId={CorrelationId})", reservation.Id, reservation.Saga.CorrelationId);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(
+                ex,
+                "Falha best-effort ao publicar booking.payment_requested da Reservation {ReservationId} " +
+                "(correlationId={CorrelationId}); ReservationSaga permanece sem registro de solicitação enviada",
+                reservation.Id, reservation.Saga.CorrelationId);
         }
 
         return reservation;

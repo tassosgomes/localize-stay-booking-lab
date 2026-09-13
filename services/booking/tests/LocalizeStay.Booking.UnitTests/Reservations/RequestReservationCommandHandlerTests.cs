@@ -32,11 +32,14 @@ public sealed class RequestReservationCommandHandlerTests
 
     private readonly Mock<IReservationRequestedPublisher> _publisher = new();
 
+    private readonly Mock<IPaymentRequestedPublisher> _paymentRequestedPublisher = new();
+
     private RequestReservationCommandHandler CreateHandler() => new(
         new RequestReservationCommandValidator(),
         _catalogClient.Object,
         _repository.Object,
         _publisher.Object,
+        _paymentRequestedPublisher.Object,
         NullLogger<RequestReservationCommandHandler>.Instance);
 
     private static RequestReservationCommand ValidCommand(int guestsCount = 2) =>
@@ -251,5 +254,43 @@ public sealed class RequestReservationCommandHandlerTests
             publisher => publisher.PublishAsync(
                 It.Is<Reservation>(r => r.Id == reservation.Id), It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleAsync_when_payment_requested_publisher_succeeds_marks_saga_and_updates_once()
+    {
+        SetupCatalogReturning(ValidFacts);
+        var handler = CreateHandler();
+
+        var reservation = await handler.HandleAsync(ValidCommand(), CancellationToken.None);
+
+        Assert.NotNull(reservation.Saga.PaymentRequestSentAt);
+        _paymentRequestedPublisher.Verify(
+            publisher => publisher.PublishAsync(
+                It.Is<Reservation>(r => r.Id == reservation.Id), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _repository.Verify(
+            repository => repository.UpdateAsync(
+                It.Is<Reservation>(r => r.Id == reservation.Id), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleAsync_when_payment_requested_publisher_fails_does_not_mark_saga_nor_update_nor_propagate()
+    {
+        SetupCatalogReturning(ValidFacts);
+        _paymentRequestedPublisher
+            .Setup(publisher => publisher.PublishAsync(
+                It.IsAny<Reservation>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("broker fora do ar"));
+        var handler = CreateHandler();
+
+        var reservation = await handler.HandleAsync(ValidCommand(), CancellationToken.None);
+
+        Assert.Equal(ReservationStatus.Solicitada, reservation.Status);
+        Assert.Null(reservation.Saga.PaymentRequestSentAt);
+        _repository.Verify(
+            repository => repository.UpdateAsync(It.IsAny<Reservation>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

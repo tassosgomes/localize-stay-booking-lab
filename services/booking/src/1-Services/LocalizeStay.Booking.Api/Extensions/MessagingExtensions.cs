@@ -62,9 +62,19 @@ public static class MessagingExtensions
                 Durable = true,
                 AutoDelete = false
             };
+
+            // Evento de negócio booking.payment_requested (F03, ADR-002):
+            // topologia declarada de forma idempotente no boot, ao lado das demais.
+            options.Exchanges[PaymentRequestedTopology.Exchange] = new ExchangeOptions
+            {
+                Name = PaymentRequestedTopology.Exchange,
+                Durable = true,
+                AutoDelete = false
+            };
         });
 
         services.AddScoped<IReservationRequestedPublisher, ReservationRequestedRmqPublisher>();
+        services.AddScoped<IPaymentRequestedPublisher, PaymentRequestedRmqPublisher>();
 
         return services;
     }

@@ -24,4 +24,11 @@ public sealed class ReservationSaga
     public SagaState State { get; private set; }
 
     public DateTime CreatedAt { get; private set; }
+
+    public DateTime? PaymentRequestSentAt { get; private set; }
+
+    public void MarkPaymentRequestSent(DateTime occurredAt)
+    {
+        PaymentRequestSentAt = occurredAt;
+    }
 }

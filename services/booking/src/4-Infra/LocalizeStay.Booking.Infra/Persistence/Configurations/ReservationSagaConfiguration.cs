@@ -17,5 +17,8 @@ public sealed class ReservationSagaConfiguration : IEntityTypeConfiguration<Rese
             .HasColumnType("varchar(32)")
             .HasConversion<string>();
         builder.Property(saga => saga.CreatedAt).HasColumnName("created_at");
+        builder.Property(saga => saga.PaymentRequestSentAt)
+            .HasColumnName("payment_request_sent_at")
+            .HasColumnType("timestamptz");
     }
 }
