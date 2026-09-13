@@ -81,40 +81,56 @@ export function RequestReservationForm({
     // noValidate: validação custom acessível (aria-invalid/aria-describedby)
     // substitui a nativa, cujos textos não são controláveis nem anunciados
     // no resumo com foco.
-    <form onSubmit={handleSubmit} noValidate aria-label="Formulário de solicitação de reserva">
+    <form
+      className="reservation-card reservation-form"
+      onSubmit={handleSubmit}
+      noValidate
+      aria-label="Formulário de solicitação de reserva"
+    >
       {errorSummary ? (
         <FormErrorSummary ref={errorSummaryRef} title={errorSummary.title} items={buildSummaryItems(errorSummary.fields)} />
       ) : null}
-      {FIELDS.map(({ field, type, autoComplete, min, step }) => {
-        const error = fieldErrors[field];
-        return (
-          <div key={field}>
-            <label htmlFor={field}>{FIELD_LABELS[field]}</label>
-            <input
-              id={field}
-              name={field}
-              type={type}
-              autoComplete={autoComplete}
-              min={min}
-              step={step}
-              value={values[field]}
-              onChange={(event) => onFieldChange(field, event.target.value)}
-              aria-invalid={error ? true : undefined}
-              aria-describedby={error ? `${field}-error` : undefined}
-            />
-            {error ? (
-              <p id={`${field}-error`}>
-                <strong>{FIELD_LABELS[field]}:</strong> {error}
-              </p>
-            ) : null}
-          </div>
-        );
-      })}
+      <div className="reservation-form__fields">
+        {FIELDS.map(({ field, type, autoComplete, min, step }) => {
+          const error = fieldErrors[field];
+          const isDate = type === 'date';
+          return (
+            <div
+              key={field}
+              className={`reservation-form__group ${isDate ? 'reservation-form__group--date' : 'reservation-form__group--full'}`}
+            >
+              <label className="reservation-form__label" htmlFor={field}>
+                {FIELD_LABELS[field]}
+              </label>
+              <input
+                id={field}
+                name={field}
+                type={type}
+                autoComplete={autoComplete}
+                min={min}
+                step={step}
+                value={values[field]}
+                onChange={(event) => onFieldChange(field, event.target.value)}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? `${field}-error` : undefined}
+                className={`reservation-form__input ${error ? 'reservation-form__input--error' : ''}`}
+              />
+              {error ? (
+                <p id={`${field}-error`} className="reservation-form__field-error">
+                  <strong>{FIELD_LABELS[field]}:</strong> {error}
+                </p>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
       {/* Apenas o botão é desabilitado durante o envio: a leitura/edição dos
           campos permanece possível (techspec §Acessibilidade). */}
-      <button type="submit" disabled={submitting}>
-        Solicitar reserva
-      </button>
+      <div className="reservation-form__actions">
+        <button type="submit" className="reservation-button-primary" disabled={submitting}>
+          Solicitar reserva
+        </button>
+      </div>
     </form>
   );
 }

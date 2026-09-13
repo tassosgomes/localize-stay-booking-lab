@@ -13,7 +13,11 @@ interface OperationFeedbackProps {
 // pedido" de "tente novamente mais tarde" — distinção central de RF-01.
 export function OperationFeedback({ tone, children }: OperationFeedbackProps) {
   return (
-    <p role={tone === 'error' ? 'alert' : 'status'} data-tone={tone}>
+    <p
+      className={`operation-feedback operation-feedback--${tone}`}
+      role={tone === 'error' ? 'alert' : 'status'}
+      data-tone={tone}
+    >
       {children}
     </p>
   );

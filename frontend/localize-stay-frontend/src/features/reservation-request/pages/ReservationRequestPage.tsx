@@ -138,8 +138,15 @@ export default function ReservationRequestPage() {
   const formFailure = failure?.kind === 'form' ? failure : null;
 
   return (
-    <section aria-labelledby="reservation-request-title">
-      <h1 id="reservation-request-title">Solicitar reserva</h1>
+    <section className="reservation-workspace" aria-labelledby="reservation-request-title">
+      <header className="reservation-workspace__header">
+        <h1 id="reservation-request-title" className="reservation-workspace__title">
+          Solicitar reserva
+        </h1>
+        <p className="reservation-workspace__lead">
+          Preencha as informações para registrar seu pedido de reserva. Os dados e valores serão congelados no envio.
+        </p>
+      </header>
       {status === 'requested' && reservation ? (
         <ReservationResultSummary
           reservation={reservation}

@@ -18,12 +18,18 @@ interface FormErrorSummaryProps {
 export function FormErrorSummary({ title, items, ref }: FormErrorSummaryProps) {
   const titleId = useId();
   return (
-    <div ref={ref} role="alert" tabIndex={-1} aria-labelledby={titleId}>
-      <p id={titleId}>
+    <div
+      ref={ref}
+      className="form-error-summary"
+      role="alert"
+      tabIndex={-1}
+      aria-labelledby={titleId}
+    >
+      <p id={titleId} className="form-error-summary__title">
         <strong>{title}</strong>
       </p>
       {items.length > 0 ? (
-        <ul>
+        <ul className="form-error-summary__list">
           {items.map((item) => (
             <li key={`${item.label ?? ''}-${item.message}`}>
               {item.label ? (
