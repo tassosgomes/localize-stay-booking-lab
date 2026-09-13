@@ -12,7 +12,7 @@
   "full_attempt": 1,
   "transport_retries": 0,
   "specs": ["techspec.md", "api-contract.yaml"],
-  "delivery": "branch",
+  "delivery": "pr",
   "validated_commit": "ab5bb57aea356784d5c3682b3125762a9c8d32cd",
   "validated_tree": "fbe2ee3ca1d1ddd217cd9b504e33a13dff457cd5",
   "last_result": {
@@ -78,6 +78,27 @@
       "event": "full_validation_approved",
       "commit": "ab5bb57aea356784d5c3682b3125762a9c8d32cd",
       "findings": "0 bloqueantes, 1 recomendação não bloqueante (mesma já registrada na focused)"
+    },
+    {
+      "phase": "complete",
+      "event": "prd_complete",
+      "delivery": "branch",
+      "final_head": "d9668c7c7f83402838e0f6cee0d1033759018368"
+    },
+    {
+      "phase": "complete",
+      "event": "delivery_upgrade_requested",
+      "detail": "usuário autorizou explicitamente abrir PR; delivery alterado de branch para pr"
+    },
+    {
+      "phase": "complete",
+      "event": "pr_created",
+      "delivery": "pr",
+      "pr_number": 5,
+      "pr_url": "https://github.com/tassosgomes/localize-stay-booking-lab/pull/5",
+      "base": "main",
+      "head_branch": "feature/prd-solicitacao-pagamento",
+      "final_head": "d9668c7c7f83402838e0f6cee0d1033759018368"
     }
   ]
 }
