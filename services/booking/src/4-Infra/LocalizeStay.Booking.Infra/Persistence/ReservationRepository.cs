@@ -31,4 +31,12 @@ public sealed class ReservationRepository(BookingDbContext dbContext) : IReserva
             .SingleOrDefaultAsync(reservation => reservation.Id == id, cancellationToken)
             .ConfigureAwait(false);
     }
+
+    public async Task<Reservation?> GetByCorrelationIdAsync(Guid correlationId, CancellationToken cancellationToken)
+    {
+        return await dbContext.Reservations
+            .Include(reservation => reservation.Saga)
+            .FirstOrDefaultAsync(reservation => reservation.Saga.CorrelationId == correlationId, cancellationToken)
+            .ConfigureAwait(false);
+    }
 }

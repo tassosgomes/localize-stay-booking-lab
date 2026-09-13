@@ -179,4 +179,67 @@ public sealed class ReservationTests
         Assert.Equal(reservation.Id, reservation.Saga.CorrelationId);
         Assert.Equal(SagaState.PaymentPending, reservation.Saga.State);
     }
+
+    private static Reservation CreateSolicitada() =>
+        Reservation.Create(AccommodationId, "guest-ref", CheckIn, CheckIn.AddDays(2), 2, ValidFacts);
+
+    [Fact]
+    public void Confirm_from_solicitada_transitions_to_confirmada_and_marks_saga_authorized()
+    {
+        var reservation = CreateSolicitada();
+
+        reservation.Confirm();
+
+        Assert.Equal(ReservationStatus.Confirmada, reservation.Status);
+        Assert.Equal(SagaState.Authorized, reservation.Saga.State);
+    }
+
+    [Theory]
+    [InlineData(ReservationStatus.Confirmada)]
+    [InlineData(ReservationStatus.Cancelada)]
+    public void Confirm_from_terminal_state_throws_InvalidOperationException(ReservationStatus terminal)
+    {
+        var reservation = CreateSolicitada();
+        if (terminal == ReservationStatus.Confirmada)
+        {
+            reservation.Confirm();
+        }
+        else
+        {
+            reservation.Cancel("motivo");
+        }
+
+        Assert.Throws<InvalidOperationException>(() => reservation.Confirm());
+    }
+
+    [Fact]
+    public void Cancel_from_solicitada_transitions_to_cancelada_marks_saga_rejected_and_records_reason()
+    {
+        var reservation = CreateSolicitada();
+        const string reason = "Pagamento rejeitado pela simulação de Payment.";
+
+        reservation.Cancel(reason);
+
+        Assert.Equal(ReservationStatus.Cancelada, reservation.Status);
+        Assert.Equal(SagaState.Rejected, reservation.Saga.State);
+        Assert.Equal(reason, reservation.Saga.CancellationReason);
+    }
+
+    [Theory]
+    [InlineData(ReservationStatus.Confirmada)]
+    [InlineData(ReservationStatus.Cancelada)]
+    public void Cancel_from_terminal_state_throws_InvalidOperationException(ReservationStatus terminal)
+    {
+        var reservation = CreateSolicitada();
+        if (terminal == ReservationStatus.Confirmada)
+        {
+            reservation.Confirm();
+        }
+        else
+        {
+            reservation.Cancel("motivo");
+        }
+
+        Assert.Throws<InvalidOperationException>(() => reservation.Cancel("outro motivo"));
+    }
 }

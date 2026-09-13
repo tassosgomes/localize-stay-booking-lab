@@ -1,3 +1,4 @@
+using LocalizeStay.Booking.Api.Messaging;
 using LocalizeStay.Booking.Application.Reservations;
 using LocalizeStay.Booking.Infra.Messaging;
 using Microsoft.Extensions.Configuration;
@@ -71,10 +72,58 @@ public static class MessagingExtensions
                 Durable = true,
                 AutoDelete = false
             };
+
+            // Eventos finais da saga (F04, ADR-002): exchanges topic duráveis
+            // modeladas 1:1 com o evento, conforme api-contract.yaml.
+            options.Exchanges[ReservationConfirmedTopology.Exchange] = new ExchangeOptions
+            {
+                Name = ReservationConfirmedTopology.Exchange,
+                Durable = true,
+                AutoDelete = false
+            };
+
+            options.Exchanges[ReservationCancelledTopology.Exchange] = new ExchangeOptions
+            {
+                Name = ReservationCancelledTopology.Exchange,
+                Durable = true,
+                AutoDelete = false
+            };
+
+            // Exchanges de consumo mantidas por Payment (contrato provisório):
+            // declaradas idempotentemente no boot para o binding das filas próprias.
+            options.Exchanges[PaymentAuthorizedTopology.Exchange] = new ExchangeOptions
+            {
+                Name = PaymentAuthorizedTopology.Exchange,
+                Durable = true,
+                AutoDelete = false
+            };
+
+            options.Exchanges[PaymentRejectedTopology.Exchange] = new ExchangeOptions
+            {
+                Name = PaymentRejectedTopology.Exchange,
+                Durable = true,
+                AutoDelete = false
+            };
         });
 
         services.AddScoped<IReservationRequestedPublisher, ReservationRequestedRmqPublisher>();
         services.AddScoped<IPaymentRequestedPublisher, PaymentRequestedRmqPublisher>();
+        services.AddScoped<IReservationConfirmedPublisher, ReservationConfirmedRmqPublisher>();
+        services.AddScoped<IReservationCancelledPublisher, ReservationCancelledRmqPublisher>();
+
+        services.AddRmqTopicConsumer<PaymentAuthorizedMessage, PaymentAuthorizedConsumer>(options =>
+        {
+            options.ExchangeName = PaymentAuthorizedTopology.Exchange;
+            options.QueueName = PaymentAuthorizedTopology.Queue;
+            options.BindingPatterns = [PaymentAuthorizedTopology.RoutingKey];
+        });
+
+        services.AddRmqTopicConsumer<PaymentRejectedMessage, PaymentRejectedConsumer>(options =>
+        {
+            options.ExchangeName = PaymentRejectedTopology.Exchange;
+            options.QueueName = PaymentRejectedTopology.Queue;
+            options.BindingPatterns = [PaymentRejectedTopology.RoutingKey];
+        });
 
         return services;
     }

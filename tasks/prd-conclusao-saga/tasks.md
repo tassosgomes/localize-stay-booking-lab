@@ -5,7 +5,7 @@
 > **API Contract:** [`api-contract.yaml`](api-contract.yaml) (AsyncAPI 3.1, v1.0.0, Status: Aprovado); [`api-contract.md`](api-contract.md) registra as decisões
 > **ADRs pertinentes:** [ADR-001: Stack .NET](../../docs/adr/adr-001-backend-stack-dotnet.md), [ADR-002: RabbitMQ](../../docs/adr/adr-002-broker-fase0-rabbitmq.md)
 > **Baseline e domínio:** [`context/architecture-baseline.md`](../../context/architecture-baseline.md), [`domains/booking/domain.md`](../../domains/booking/domain.md)
-> **Status do plano:** Em revisão
+> **Status do plano:** Confirmado para implementação
 > **Regra de entrega:** a task de comportamento é uma fatia vertical validável isoladamente
 
 ## Visão Geral
@@ -64,7 +64,7 @@ tipo e a fatia precisa desse registro para executar.
 
 ## Tarefas
 
-- [ ] 1.0 Fechar a Reservation Saga por autorização/rejeição: consumo, transição, publicação e proteção terminal (V-01)
+- [x] 1.0 Fechar a Reservation Saga por autorização/rejeição: consumo, transição, publicação e proteção terminal (V-01)
 
 ## Rastreabilidade US → Tasks
 

@@ -32,5 +32,16 @@ public sealed class ReservationSaga
         PaymentRequestSentAt = occurredAt;
     }
 
+    public void MarkAuthorized()
+    {
+        State = SagaState.Authorized;
+    }
+
+    public void MarkRejected(string cancellationReason)
+    {
+        State = SagaState.Rejected;
+        CancellationReason = cancellationReason;
+    }
+
     public string? CancellationReason { get; private set; }
 }
