@@ -101,3 +101,18 @@ Respeite compute para verificações pesadas e infra para serviços quando o pro
 
 Mudar este contrato exige atualizar as três skills de fluxo. Mudar a implementação
 para outra linguagem, não.
+
+## Anexo: despacho de filtros neste repositório (nota de implementação, não contrato)
+
+Regra por filtro, nesta ordem (contagens somadas; `SUM=0` reprova — Invariante 2):
+
+| Filtro | Destino |
+|---|---|
+| contém `e2e/` ou `.spec.ts`, ou nome que referencia spec existente em `frontend/*/e2e/` | Playwright (`npm run test:e2e -- <filtro>` se o script existir, senão `playwright test <filtro>` no dir do frontend). Nunca vai ao `dotnet test` nem ao vitest. |
+| contém `.test`, `ServiceStatus` ou `vitest` | Vitest (`vitest run <filtro> --passWithNoTests=false`). Nunca vai ao `dotnet test`. |
+| demais (ex.: `FullyQualifiedName~...`) | `dotnet test --filter` (soma `Passed: N` do output). |
+
+`e2e/**` está excluído do Vitest (`vite.config.ts` → `test.exclude`), de modo que
+specs Playwright nunca rodem no runner errado. Filtros E2E ativam o typecheck do
+frontend (`NEED_NODE=1`). No `--all-tests`, a suíte Playwright completa só roda
+quando há specs em `frontend/*/e2e/`; sem esse diretório o comportamento é o anterior.

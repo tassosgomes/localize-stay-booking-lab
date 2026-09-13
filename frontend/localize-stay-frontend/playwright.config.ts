@@ -31,6 +31,7 @@ export default defineConfig({
       ...process.env,
       E2E_VITE_PORT: vitePort,
       E2E_CATALOG_URL: process.env.E2E_CATALOG_URL ?? 'http://127.0.0.1:5111',
+      E2E_BOOKING_URL: process.env.E2E_BOOKING_URL ?? 'http://localhost:5102',
     },
   },
   projects: [

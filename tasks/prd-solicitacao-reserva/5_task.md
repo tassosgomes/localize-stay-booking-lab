@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 slice_type: vertical
 verification_type: behavioral
 parallelizable: true
@@ -14,7 +14,7 @@ blocked_by: [4.0]
 <dependencies>http_server</dependencies>
 <unblocks>"6.0"</unblocks>
 <feedback_checkpoint>`scripts/ai-flow/gate.sh --filter="ReservationRequestPage"` prova, via RTL + MSW, os 7 desfechos do contrato (201 + 400 + 5×422 + 503) no mesmo formulário, com validação local, prevenção de duplo submit, preservação de valores em erro e foco acessível; `reservationFormValidation.test.ts` e `reservationErrorMapping.test.ts` (funções puras) passam no mesmo gate</feedback_checkpoint>
-<gate_command>scripts/ai-flow/gate.sh --filter="ReservationRequestPage"</gate_command>
+<gate_command>scripts/ai-flow/gate.sh --filter="ReservationRequestPage.test" --filter="reservationFormValidation.test" --filter="reservationErrorMapping.test"</gate_command>
 <gate_test_selector>Arquivo `frontend/localize-stay-frontend/src/features/reservation-request/pages/ReservationRequestPage.test.tsx` (mais `reservationFormValidation.test.ts` e `reservationErrorMapping.test.ts`, colocalizados na mesma feature)</gate_test_selector>
 <gate_expected_result>Filtro encontra testes; todos passam; `/reservations` aceita um request válido e mostra o resumo congelado; cada um dos 6 desfechos de erro (400, 5×422, 503) mostra mensagem/tom/campo corretos e preserva os valores digitados; loading impede duplo submit; build e type-check permanecem verdes</gate_expected_result>
 <static_evidence>N/A — behavioral</static_evidence>

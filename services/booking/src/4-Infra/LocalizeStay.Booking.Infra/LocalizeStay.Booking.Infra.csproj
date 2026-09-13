@@ -7,10 +7,14 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Rmq.CloudEvents" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../2-Application/LocalizeStay.Booking.Application/LocalizeStay.Booking.Application.csproj" />
     <ProjectReference Include="../../3-Domain/LocalizeStay.Booking.Domain/LocalizeStay.Booking.Domain.csproj" />
   </ItemGroup>
 

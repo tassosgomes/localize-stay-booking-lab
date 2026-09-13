@@ -1,3 +1,5 @@
+using LocalizeStay.Booking.Application.Reservations;
+using LocalizeStay.Booking.Infra.Messaging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Rmq.CloudEvents.Configuration;
@@ -51,7 +53,18 @@ public static class MessagingExtensions
                 Durable = true,
                 AutoDelete = false
             };
+
+            // Evento de negócio booking.reservation_requested (RF-01, ADR-002):
+            // topologia declarada de forma idempotente no boot, ao lado do diagnóstico.
+            options.Exchanges[ReservationRequestedTopology.Exchange] = new ExchangeOptions
+            {
+                Name = ReservationRequestedTopology.Exchange,
+                Durable = true,
+                AutoDelete = false
+            };
         });
+
+        services.AddScoped<IReservationRequestedPublisher, ReservationRequestedRmqPublisher>();
 
         return services;
     }

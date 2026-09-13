@@ -23,15 +23,104 @@ namespace LocalizeStay.Booking.Infra.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("LocalizeStay.Booking.Infra.Persistence.BootstrapCheck", b =>
+            modelBuilder.Entity("LocalizeStay.Booking.Domain.Reservations.Reservation", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AccommodationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("accommodation_id");
+
+                    b.Property<DateOnly>("CheckIn")
+                        .HasColumnType("date")
+                        .HasColumnName("check_in");
+
+                    b.Property<DateOnly>("CheckOut")
+                        .HasColumnType("date")
+                        .HasColumnName("check_out");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasColumnType("varchar(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<string>("GuestReference")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("guest_reference");
+
+                    b.Property<int>("GuestsCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("guests_count");
+
+                    b.Property<decimal>("PricePerNight")
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("price_per_night");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("varchar(12)")
+                        .HasColumnName("status");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("total_amount");
 
                     b.HasKey("Id");
 
-                    b.ToTable("__bootstrap_check", "booking");
+                    b.ToTable("reservations", "booking");
+                });
+
+            modelBuilder.Entity("LocalizeStay.Booking.Domain.Reservations.ReservationSaga", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("correlation_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("ReservationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reservation_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("varchar(32)")
+                        .HasColumnName("state");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReservationId")
+                        .IsUnique();
+
+                    b.ToTable("reservation_sagas", "booking");
+                });
+
+            modelBuilder.Entity("LocalizeStay.Booking.Domain.Reservations.ReservationSaga", b =>
+                {
+                    b.HasOne("LocalizeStay.Booking.Domain.Reservations.Reservation", null)
+                        .WithOne("Saga")
+                        .HasForeignKey("LocalizeStay.Booking.Domain.Reservations.ReservationSaga", "ReservationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LocalizeStay.Booking.Domain.Reservations.Reservation", b =>
+                {
+                    b.Navigation("Saga")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

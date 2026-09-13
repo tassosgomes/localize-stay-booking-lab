@@ -1,3 +1,4 @@
+using LocalizeStay.Booking.Api.Endpoints;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 
@@ -11,9 +12,11 @@ public static class MiddlewarePipelineExtensions
 
         // Sem UseHttpsRedirection nesta fase: o laboratório local não tem TLS;
         // a decisão volta no primeiro PRD que exigir transporte seguro.
+        app.UseExceptionHandler();
         app.UseSwaggerConfiguration();
         app.UseCorsConfiguration();
         app.MapHealthCheckConfiguration();
+        app.MapReservationEndpoints();
         app.MapDiagnosticsEndpoints();
 
         return app;

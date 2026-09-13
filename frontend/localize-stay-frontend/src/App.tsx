@@ -1,8 +1,14 @@
 import { useEffect, useState, type MouseEvent } from 'react';
 import { PropertyWorkspacePage } from './features/property-registration/index.ts';
+import { ReservationRequestPage } from './features/reservation-request/index.ts';
 import ServiceStatus from './components/ServiceStatus/ServiceStatus.tsx';
 import './App.css';
 
+// Roteamento mínimo do frontend (ADR-003): sem biblioteca de router, a rota
+// atual é lida de window.location.pathname (âncoras navegam via pushState;
+// popstate cobre back/forward). `/properties` é a jornada de Cadastro de
+// Property; `/reservations` é registrada pela API pública da feature de
+// Solicitação de Reserva — não existe `/reservations/:id` (consulta é F02).
 function currentPathname(): string {
   return window.location.pathname;
 }
@@ -30,6 +36,8 @@ export default function App() {
     setPathname(nextPath);
   }
 
+  const onReservations = pathname === '/reservations';
+
   const navigation = (
     <nav className="app-nav" aria-label="Navegação principal">
       <a href="/" onClick={(event) => navigate(event, '/')}>
@@ -37,6 +45,9 @@ export default function App() {
       </a>
       <a href="/properties" onClick={(event) => navigate(event, '/properties')}>
         Cadastro de hospedagem
+      </a>
+      <a href="/reservations" onClick={(event) => navigate(event, '/reservations')}>
+        Solicitar reserva
       </a>
     </nav>
   );
@@ -71,7 +82,7 @@ export default function App() {
           padding: 'var(--space-section) var(--space-base)',
         }}
       >
-        <ServiceStatus />
+        {onReservations ? <ReservationRequestPage /> : <ServiceStatus />}
       </main>
     </>
   );
