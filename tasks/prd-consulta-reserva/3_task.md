@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 slice_type: enabling
 verification_type: behavioral
 parallelizable: true
@@ -104,13 +104,13 @@ sem duplicar parsing de `ProblemDetails` nem mocks divergentes.
 
 ## Subtarefas
 
-- [ ] 3.1 Adicionar a terceira chamada de `openapi-typescript` a `api:generate` e gerar
+- [x] 3.1 Adicionar a terceira chamada de `openapi-typescript` a `api:generate` e gerar
       `reservationDetail.ts`; confirmar `npm run type-check` verde
-- [ ] 3.2 Implementar `reservationDetailApi.getById(reservationId, signal)` com a classificação
+- [x] 3.2 Implementar `reservationDetailApi.getById(reservationId, signal)` com a classificação
       `found`/`malformed`/`notFound`/`failed` por `(status, code)`
-- [ ] 3.3 Adicionar a `src/test/mocks/handlers.ts` os 6 handlers desta feature (200×3, 400, 404, 500)
+- [x] 3.3 Adicionar a `src/test/mocks/handlers.ts` os 6 handlers desta feature (200×3, 400, 404, 500)
       como factories reutilizáveis por teste
-- [ ] 3.4 Escrever `reservationDetailApi.test.ts` cobrindo os 6 cenários via MSW, incluindo
+- [x] 3.4 Escrever `reservationDetailApi.test.ts` cobrindo os 6 cenários via MSW, incluindo
       `cancellationReason` nulo vs. preenchido
 
 ## Sequenciamento
