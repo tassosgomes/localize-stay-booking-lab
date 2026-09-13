@@ -5,5 +5,7 @@
 | [ADR-001](adr-001-backend-stack-dotnet.md) | Stack de backend: .NET / C# (ASP.NET Core) | Accepted | 2026-09-11 |
 | [ADR-002](adr-002-broker-fase0-rabbitmq.md) | Broker de eventos da Fase 0: RabbitMQ | Accepted | 2026-09-11 |
 | [ADR-003](adr-003-frontend-teste-react.md) | Frontend de teste/visualização: React, sem gateway/BFF na Fase 0 | Accepted | 2026-09-11 |
+| [ADR-004](adr-004-reservation-calendar-live-view.md) | Publicação do calendário como view PostgreSQL ao vivo | Accepted | 2026-09-13 |
+| [ADR-005](adr-005-terminal-transition-timestamp.md) | Persistência do instante da transição terminal da Reservation | Accepted | 2026-09-13 |
 
 > Numeração global e sequencial. Ao propor uma nova ADR, reservar o próximo ID aqui antes de criar o arquivo.
