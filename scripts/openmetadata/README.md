@@ -1,5 +1,11 @@
 # Publicação de contratos no OpenMetadata
 
+> Ingestão Postgres, OpenAPI (catalog + booking) e AsyncAPI confirmados
+> publicando com sucesso contra o `ecad-dev-openmetadata` real em
+> 2026-09-14, depois de aplicada a view `integration.reservation_calendar_v1`
+> (`db/integration/001-reservation-calendar-v1.sql`) — pré-requisito do
+> passo de Data Contracts abaixo.
+
 Todo push em `main` roda o job `catalog-metadata` do `.github/workflows/ci.yml`
 no runner self-hosted `homelab` (o único que alcança
 `openmetadata.lab.tasso.dev.br`, só disponível na LAN do `infra`). O job
