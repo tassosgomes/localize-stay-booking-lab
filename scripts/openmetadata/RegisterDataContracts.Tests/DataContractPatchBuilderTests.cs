@@ -30,7 +30,7 @@ public sealed class DataContractPatchBuilderTests
         var patch = JsonNode.Parse(DataContractPatchBuilder.BuildPatch([], Contract))!.AsArray();
 
         var tags = patch.Single(op => op!["path"]!.GetValue<string>() == "/tags")!["value"]!.AsArray();
-        Assert.Contains(tags, t => t?["tagFQN"]?.GetValue<string>() == "localize-stay");
+        Assert.Contains(tags, t => t?["tagFQN"]?.GetValue<string>() == "localize-stay.localize-stay");
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public sealed class DataContractPatchBuilderTests
 
         var tags = patch.Single(op => op!["path"]!.GetValue<string>() == "/tags")!["value"]!.AsArray();
         Assert.Contains(tags, t => t?["tagFQN"]?.GetValue<string>() == "outra-tag");
-        Assert.Contains(tags, t => t?["tagFQN"]?.GetValue<string>() == "localize-stay");
+        Assert.Contains(tags, t => t?["tagFQN"]?.GetValue<string>() == "localize-stay.localize-stay");
     }
 
     [Fact]
@@ -58,14 +58,14 @@ public sealed class DataContractPatchBuilderTests
         {
             ["tags"] = new JsonArray
             {
-                new JsonObject { ["tagFQN"] = "localize-stay", ["source"] = "Classification", ["labelType"] = "Manual", ["state"] = "Confirmed" },
+                new JsonObject { ["tagFQN"] = "localize-stay.localize-stay", ["source"] = "Classification", ["labelType"] = "Manual", ["state"] = "Confirmed" },
             },
         };
 
         var patch = JsonNode.Parse(DataContractPatchBuilder.BuildPatch(current, Contract))!.AsArray();
 
         var tags = patch.Single(op => op!["path"]!.GetValue<string>() == "/tags")!["value"]!.AsArray();
-        Assert.Single(tags, t => t?["tagFQN"]?.GetValue<string>() == "localize-stay");
+        Assert.Single(tags, t => t?["tagFQN"]?.GetValue<string>() == "localize-stay.localize-stay");
     }
 
     [Fact]

@@ -36,7 +36,11 @@ public static class PayloadBuilder
 
     public const string ConnectionConfigType = "CustomMessaging";
 
-    public const string TagFqn = "localize-stay";
+    // FQN completo classification.tag — o CI garante que ambos existam antes
+    // deste publicador rodar (ver step "Garantir classification/tag
+    // localize-stay" em ci.yml). Um tagFQN de um segmento só (a classification
+    // sozinha) não resolve: a API responde 404 "Entity not found: tag ...".
+    public const string TagFqn = "localize-stay.localize-stay";
 
     public const string Vhost = "/localize-stay";
 
@@ -91,11 +95,14 @@ public static class PayloadBuilder
             ["description"] = string.IsNullOrWhiteSpace(description)
                 ? $"Exchange/fila {topicName} do vhost /localize-stay."
                 : description,
-            ["service"] = new JsonObject
-            {
-                ["type"] = "messagingService",
-                ["name"] = ServiceName,
-            },
+            // `service` é o NOME do serviço (string simples), não um objeto
+            // {type,name} — confirmado no conector custom_messaging.py oficial
+            // (CreateTopicRequest(service=service_name, ...)). `partitions` é
+            // obrigatório no schema mesmo para brokers sem partição real
+            // (RabbitMQ); 1 é o valor usado pelos conectores NATS/Pub-Sub
+            // oficiais (também non-partitioned) para o mesmo campo.
+            ["service"] = ServiceName,
+            ["partitions"] = 1,
             ["tags"] = TagLabels(),
         };
 

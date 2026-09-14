@@ -353,6 +353,22 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # register-rabbitmq/register-data-contracts referenciam a tag
+      # localize-stay.localize-stay (classification "localize-stay" + tag
+      # "localize-stay" dentro dela) — sem ela existir, a API responde 404
+      # "Entity not found: tag ...". Idempotente: `|| true` absorve o erro
+      # quando a classification/tag já existe (create, não upsert).
+      - name: Garantir classification/tag localize-stay
+        run: |
+          curl -sf -X POST "$OPENMETADATA_BASE_URL/v1/classifications" \
+            -H "Authorization: Bearer $OPENMETADATA_INGESTION_JWT" -H "Content-Type: application/json" \
+            -d '{"name":"localize-stay","description":"Ativos do Localize Stay Booking Lab, para não confundir com o catálogo do ecad-sba no mesmo OpenMetadata."}' \
+            || true
+          curl -sf -X POST "$OPENMETADATA_BASE_URL/v1/tags" \
+            -H "Authorization: Bearer $OPENMETADATA_INGESTION_JWT" -H "Content-Type: application/json" \
+            -d '{"name":"localize-stay","classification":"localize-stay","description":"Marca qualquer entidade do Localize Stay Booking Lab."}' \
+            || true
+
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'

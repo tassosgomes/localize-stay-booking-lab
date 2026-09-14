@@ -42,7 +42,7 @@ public sealed class PayloadBuilderTests
 
         Assert.Contains(
             payload["tags"]?.AsArray() ?? new JsonArray(),
-            tag => tag?["tagFQN"]?.GetValue<string>() == "localize-stay");
+            tag => tag?["tagFQN"]?.GetValue<string>() == "localize-stay.localize-stay");
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public sealed class PayloadBuilderTests
         Assert.Equal(topicName, payload["name"]?.GetValue<string>());
         Assert.Contains(
             payload["tags"]?.AsArray() ?? new JsonArray(),
-            tag => tag?["tagFQN"]?.GetValue<string>() == "localize-stay");
+            tag => tag?["tagFQN"]?.GetValue<string>() == "localize-stay.localize-stay");
     }
 
     [Fact]
@@ -97,6 +97,18 @@ public sealed class PayloadBuilderTests
     {
         var payload = JsonNode.Parse(PayloadBuilder.BuildTopicPayload(topicName, "desc"))!;
 
-        Assert.Equal("localize-stay-rabbitmq", payload["service"]?["name"]?.GetValue<string>());
+        // `service` é o nome do serviço como string simples (não um objeto
+        // {type,name}) — confirmado no conector custom_messaging.py oficial.
+        Assert.Equal("localize-stay-rabbitmq", payload["service"]?.GetValue<string>());
+    }
+
+    [Theory]
+    [InlineData("diagnostics.topic")]
+    [InlineData("notification.diagnostics")]
+    public void TopicPayload_HasPartitions(string topicName)
+    {
+        var payload = JsonNode.Parse(PayloadBuilder.BuildTopicPayload(topicName, "desc"))!;
+
+        Assert.Equal(1, payload["partitions"]?.GetValue<int>());
     }
 }

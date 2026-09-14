@@ -14,7 +14,11 @@ namespace RegisterDataContracts;
 /// </summary>
 public static class DataContractPatchBuilder
 {
-    public const string TagFqn = "localize-stay";
+    // FQN completo classification.tag (mesma tag do register-rabbitmq) — o
+    // CI garante que ambos existam antes deste publicador rodar. Um tagFQN
+    // de um segmento só (a classification sozinha) não resolve: a API
+    // responde 404 "Entity not found: tag ...".
+    public const string TagFqn = "localize-stay.localize-stay";
 
     public const string RefProperty = "dataContractRef";
 
