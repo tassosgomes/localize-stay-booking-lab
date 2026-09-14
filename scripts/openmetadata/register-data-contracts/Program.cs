@@ -85,7 +85,11 @@ public static class Program
             return 2;
         }
 
-        using var http = new HttpClient { BaseAddress = new Uri(options.BaseUrl) };
+        // BaseAddress precisa terminar com "/" e os paths relativos NÃO podem
+        // começar com "/" — caso contrário o HttpClient substitui o path
+        // inteiro da BaseAddress em vez de concatenar (RFC 3986, referência
+        // relativa "path-absolute"), descartando o sufixo /api da URL.
+        using var http = new HttpClient { BaseAddress = new Uri(NormalizeBaseUrl(options.BaseUrl)) };
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", pat);
 
         var failures = 0;
@@ -107,7 +111,7 @@ public static class Program
     private static async Task<int> PublishAsync(HttpClient http, DataContractInfo contract)
     {
         var fqn = TableFqnBuilder.Build(contract);
-        var path = $"/v1/tables/name/{fqn}";
+        var path = $"v1/tables/name/{fqn}";
 
         JsonObject current;
         try
@@ -116,7 +120,7 @@ public static class Program
             if (!getResponse.IsSuccessStatusCode)
             {
                 Console.Error.WriteLine(
-                    $"GET {path} -> {(int)getResponse.StatusCode}. A tabela/view ainda não existe no catálogo? Rode a ingestão Postgres antes deste passo.");
+                    $"GET /{path} -> {(int)getResponse.StatusCode}. A tabela/view ainda não existe no catálogo? Rode a ingestão Postgres antes deste passo.");
                 return 1;
             }
 
@@ -124,7 +128,7 @@ public static class Program
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"GET {path} falhou: {ex.GetType().Name} (detalhes de rede, token omitido)");
+            Console.Error.WriteLine($"GET /{path} falhou: {ex.GetType().Name} (detalhes de rede, token omitido)");
             return 1;
         }
 
@@ -136,11 +140,11 @@ public static class Program
             var body = await patchResponse.Content.ReadAsStringAsync();
             if (!patchResponse.IsSuccessStatusCode)
             {
-                Console.Error.WriteLine($"PATCH {path} -> {(int)patchResponse.StatusCode}. Resposta (token omitido): {body}");
+                Console.Error.WriteLine($"PATCH /{path} -> {(int)patchResponse.StatusCode}. Resposta (token omitido): {body}");
                 return 1;
             }
 
-            Console.WriteLine($"PATCH {path} -> {(int)patchResponse.StatusCode} OK ({contract.SourceFile})");
+            Console.WriteLine($"PATCH /{path} -> {(int)patchResponse.StatusCode} OK ({contract.SourceFile})");
             return 0;
         }
         catch (Exception ex)
@@ -200,4 +204,6 @@ public static class Program
             ? jwt
             : getEnvironmentVariable(LegacyPatEnvVar);
     }
+
+    internal static string NormalizeBaseUrl(string baseUrl) => baseUrl.EndsWith('/') ? baseUrl : baseUrl + "/";
 }

@@ -89,14 +89,18 @@ public static class Program
             return 2;
         }
 
-        using var http = new HttpClient { BaseAddress = new Uri(options.BaseUrl) };
+        // BaseAddress precisa terminar com "/" e os paths relativos NÃO podem
+        // começar com "/" — caso contrário o HttpClient substitui o path
+        // inteiro da BaseAddress em vez de concatenar (RFC 3986, referência
+        // relativa "path-absolute"), descartando o sufixo /api da URL.
+        using var http = new HttpClient { BaseAddress = new Uri(NormalizeBaseUrl(options.BaseUrl)) };
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", pat);
 
         var failures = 0;
-        failures += await PostAsync(http, "/v1/services/messagingServices", servicePayload, "messaging service");
+        failures += await PostAsync(http, "v1/services/messagingServices", servicePayload, "messaging service");
         foreach (var (name, payload) in topics)
         {
-            failures += await PostAsync(http, "/v1/topics", payload, $"topic {name}");
+            failures += await PostAsync(http, "v1/topics", payload, $"topic {name}");
         }
 
         if (failures > 0)
@@ -160,6 +164,8 @@ public static class Program
             : getEnvironmentVariable(LegacyPatEnvVar);
     }
 
+    internal static string NormalizeBaseUrl(string baseUrl) => baseUrl.EndsWith('/') ? baseUrl : baseUrl + "/";
+
     private static async Task<int> PostAsync(HttpClient http, string path, string payload, string label)
     {
         using var content = new StringContent(payload, Encoding.UTF8, "application/json");
@@ -169,16 +175,16 @@ public static class Program
             var body = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                Console.Error.WriteLine($"POST {path} ({label}) -> {(int)response.StatusCode}. Resposta (PAT omitido): {body}");
+                Console.Error.WriteLine($"POST /{path} ({label}) -> {(int)response.StatusCode}. Resposta (PAT omitido): {body}");
                 return 1;
             }
 
-            Console.WriteLine($"POST {path} ({label}) -> {(int)response.StatusCode} OK");
+            Console.WriteLine($"POST /{path} ({label}) -> {(int)response.StatusCode} OK");
             return 0;
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"POST {path} ({label}) falhou: {ex.GetType().Name} (detalhes de rede, PAT omitido)");
+            Console.Error.WriteLine($"POST /{path} ({label}) falhou: {ex.GetType().Name} (detalhes de rede, PAT omitido)");
             return 1;
         }
     }
