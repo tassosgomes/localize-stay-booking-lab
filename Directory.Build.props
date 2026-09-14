@@ -2,7 +2,10 @@
      TODOS os serviços (catalog/booking/payment/notification-worker): editá-lo
      builda+testa+roda migrate+deploy dos 4, mesmo sem mudança de código de
      serviço. Ver scripts/openmetadata/Directory.Packages.props para o motivo
-     de isolar dependências de ferramentas fora deste arquivo raiz. -->
+     de isolar dependências de ferramentas fora deste arquivo raiz.
+     Retrigger: fix do "Restore projeto" em ci.yml (commit db65ee0) só entrou
+     em vigor depois que este arquivo mudou de novo — ci.yml sozinho não é
+     gatilho do paths-filter. -->
 <Project>
   <PropertyGroup>
     <Nullable>enable</Nullable>
