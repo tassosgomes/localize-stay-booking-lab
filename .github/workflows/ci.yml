@@ -329,6 +329,14 @@ jobs:
           esac
           CONN="Host=$POSTGRES_HOST;Port=$POSTGRES_PORT;Database=localize_stay;Username=$ROLE;Password=$PW"
           export "${ENVKEY}=${CONN}"
+          # `dotnet ef` builda o host completo da API pra resolver o DbContext
+          # via DI; o Booking valida a seção RabbitMQ no startup (mesmo sem
+          # nenhuma mensageria envolvida numa migration) e falha rápido sem
+          # isso. Mesmas credenciais descartáveis de scripts/contracts/export-openapi.sh.
+          export RabbitMQ__HostName="localhost"
+          export RabbitMQ__UserName="guest"
+          export RabbitMQ__Password="migrate-dummy"
+          export RabbitMQ__VirtualHost="localize-stay"
           dotnet ef database update --project "$INFRA" --startup-project "$STARTUP"
 
   # Publica contracts/openapi (conector nativo `rest`), contracts/asyncapi
