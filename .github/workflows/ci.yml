@@ -280,12 +280,17 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Install dotnet-ef
+      # O repo já versiona .config/dotnet-tools.json (raiz, isRoot: true,
+      # dotnet-ef pinado). `dotnet ef` sempre resolve por esse manifesto de
+      # local tool primeiro quando ele existe — `dotnet tool install
+      # --tool-path` (versão anterior deste step) instalava um dotnet-ef
+      # paralelo no PATH que nunca era usado, e falhava com "Run 'dotnet
+      # tool restore'...". `dotnet tool restore` restaura no cache do NuGet
+      # do usuário (~/.nuget/packages), sem precisar de escrita em
+      # /usr/share/dotnet.
+      - name: Restore dotnet-ef (local tool)
         if: matrix.service != 'notification-worker'
-        run: |
-          export DOTNET_TOOLS_DIR="${{ runner.temp }}/dotnet-tools"
-          dotnet tool install --tool-path "$DOTNET_TOOLS_DIR" dotnet-ef
-          echo "$DOTNET_TOOLS_DIR" >> "$GITHUB_PATH"
+        run: dotnet tool restore
 
       - name: Apply migration
         if: matrix.service != 'notification-worker'
