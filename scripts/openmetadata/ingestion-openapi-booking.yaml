@@ -17,7 +17,10 @@ source:
   serviceConnection:
     config:
       type: Rest
-      openAPISchemaURL: http://127.0.0.1:8000/booking.json
+      # openAPISchemaURL exige openAPISchemaConnection aninhado — "Extra
+      # parameter 'openAPISchemaURL'" se declarado solto no nível acima.
+      openAPISchemaConnection:
+        openAPISchemaURL: http://127.0.0.1:8000/booking.json
   sourceConfig:
     config:
       type: ApiMetadata
