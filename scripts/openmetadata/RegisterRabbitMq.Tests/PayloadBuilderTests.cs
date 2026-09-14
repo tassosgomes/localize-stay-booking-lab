@@ -5,13 +5,20 @@ using Xunit;
 namespace RegisterRabbitMq;
 
 /// <summary>
-/// Testes unitários do construtor de payload (task 9.0, V-06). Sem rede: só
-/// comprovam que o JSON enviado a <c>/v1/services/messagingServices</c> e
-/// <c>/v1/topics</c> tem os campos corretos. A chamada real contra o
-/// <c>ecad-dev-openmetadata</c> é verificação manual do dono do homelab.
+/// Testes unitários do construtor de payload (task 9.0, V-06, generalizado
+/// para ler <c>contracts/asyncapi/*.yaml</c>). Sem rede: só comprovam que o
+/// JSON enviado a <c>/v1/services/messagingServices</c> e <c>/v1/topics</c>
+/// tem os campos corretos. A chamada real contra o OpenMetadata é feita pelo
+/// job <c>catalog-metadata</c> do CI.
 /// </summary>
 public sealed class PayloadBuilderTests
 {
+    private static readonly (string Name, string Description)[] DiagnosticsChannels =
+    [
+        ("diagnostics.topic", "Exchange de diagnóstico."),
+        ("notification.diagnostics", "Fila de diagnóstico."),
+    ];
+
     [Fact]
     public void MessagingServicePayload_HasCustomMessagingServiceType()
     {
@@ -39,9 +46,17 @@ public sealed class PayloadBuilderTests
     }
 
     [Fact]
-    public void TopicPayloads_ContainBothDiagnosticTopics()
+    public void MessagingServicePayload_UsesCustomMessagingConnection()
     {
-        var topics = PayloadBuilder.BuildTopicPayloads().Select(t => t.Name).ToList();
+        var payload = JsonNode.Parse(PayloadBuilder.BuildMessagingServicePayload())!;
+
+        Assert.Equal("CustomMessaging", payload["connection"]?["config"]?["type"]?.GetValue<string>());
+    }
+
+    [Fact]
+    public void TopicPayloads_PreserveChannelOrderAndNames()
+    {
+        var topics = PayloadBuilder.BuildTopicPayloads(DiagnosticsChannels).Select(t => t.Name).ToList();
 
         Assert.Equal(["diagnostics.topic", "notification.diagnostics"], topics);
     }
@@ -51,7 +66,7 @@ public sealed class PayloadBuilderTests
     [InlineData("notification.diagnostics")]
     public void TopicPayload_HasNameAndLocalizeStayTag(string topicName)
     {
-        var payload = JsonNode.Parse(PayloadBuilder.BuildTopicPayload(topicName))!;
+        var payload = JsonNode.Parse(PayloadBuilder.BuildTopicPayload(topicName, "desc"))!;
 
         Assert.Equal(topicName, payload["name"]?.GetValue<string>());
         Assert.Contains(
@@ -59,21 +74,29 @@ public sealed class PayloadBuilderTests
             tag => tag?["tagFQN"]?.GetValue<string>() == "localize-stay");
     }
 
+    [Fact]
+    public void TopicPayload_UsesChannelDescription()
+    {
+        var payload = JsonNode.Parse(PayloadBuilder.BuildTopicPayload("diagnostics.topic", "Descrição real do canal."))!;
+
+        Assert.Equal("Descrição real do canal.", payload["description"]?.GetValue<string>());
+    }
+
+    [Fact]
+    public void TopicPayload_FallsBackToGenericDescription_WhenChannelHasNone()
+    {
+        var payload = JsonNode.Parse(PayloadBuilder.BuildTopicPayload("diagnostics.topic"))!;
+
+        Assert.Contains("diagnostics.topic", payload["description"]?.GetValue<string>());
+    }
+
     [Theory]
     [InlineData("diagnostics.topic")]
     [InlineData("notification.diagnostics")]
     public void TopicPayload_ReferencesMessagingService(string topicName)
     {
-        var payload = JsonNode.Parse(PayloadBuilder.BuildTopicPayload(topicName))!;
+        var payload = JsonNode.Parse(PayloadBuilder.BuildTopicPayload(topicName, "desc"))!;
 
         Assert.Equal("localize-stay-rabbitmq", payload["service"]?["name"]?.GetValue<string>());
-    }
-
-    [Fact]
-    public void MessagingServicePayload_UsesCustomMessagingConnection()
-    {
-        var payload = JsonNode.Parse(PayloadBuilder.BuildMessagingServicePayload())!;
-
-        Assert.Equal("CustomMessaging", payload["connection"]?["config"]?["type"]?.GetValue<string>());
     }
 }

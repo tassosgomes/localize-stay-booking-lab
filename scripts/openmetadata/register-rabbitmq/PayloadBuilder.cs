@@ -6,9 +6,11 @@ namespace RegisterRabbitMq;
 
 /// <summary>
 /// Constrói os payloads JSON de registro do vhost <c>/localize-stay</c> no
-/// OpenMetadata (task 9.0, V-06). Puro e sem I/O: nenhuma chamada HTTP acontece
-/// aqui — a execução real vive em <c>Program.cs</c> e é verificação manual do
-/// dono do homelab contra o <c>ecad-dev-openmetadata</c> real.
+/// OpenMetadata. Puro e sem I/O: nenhuma chamada HTTP acontece aqui — a
+/// execução real vive em <c>Program.cs</c>, que lê a lista de tópicos a
+/// partir dos arquivos <c>contracts/asyncapi/*.yaml</c> via
+/// <see cref="AsyncApiChannelReader"/> e roda automaticamente no CI a cada
+/// push em <c>main</c> (job <c>catalog-metadata</c>).
 /// </summary>
 /// <remarks>
 /// Contrato seguido (OpenMetadata 2.0.x, confirmado na documentação pública):
@@ -17,10 +19,10 @@ namespace RegisterRabbitMq;
 /// <c>serviceType: CustomMessaging</c> — valor válido do enum
 /// <c>messagingServiceType</c>, com config de conexão do tipo
 /// <c>CustomMessaging</c>. Por isso nenhum workaround (ex.: Kafka genérico) é
-/// necessário no payload; a confirmação na build 2.0.1 instalada permanece
-/// como verificação manual.</item>
-/// <item><c>PUT /api/v1/topics</c> (upsert), um por exchange/fila real de V-03
-/// (<c>diagnostics.topic</c>, <c>notification.diagnostics</c>).</item>
+/// necessário no payload.</item>
+/// <item><c>PUT /api/v1/topics</c> (upsert), um por canal declarado nos
+/// arquivos AsyncAPI (exchange para bindings <c>routingKey</c>, fila para
+/// bindings <c>queue</c>).</item>
 /// </list>
 /// Toda entidade recebe a tag <c>localize-stay</c> para não confundir com os
 /// ativos do <c>ecad-sba</c> no mesmo catálogo.
@@ -36,12 +38,6 @@ public static class PayloadBuilder
     public const string TagFqn = "localize-stay";
 
     public const string Vhost = "/localize-stay";
-
-    public static readonly IReadOnlyList<string> TopicNames =
-    [
-        "diagnostics.topic",
-        "notification.diagnostics",
-    ];
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -60,8 +56,9 @@ public static class PayloadBuilder
             ["name"] = ServiceName,
             ["displayName"] = ServiceName,
             ["description"] = "Vhost /localize-stay do broker ecad-dev-rabbitmq (RabbitMQ compartilhado com o ecad-sba). "
-                + "Topologia de diagnóstico da fundação (V-03): exchange diagnostics.topic, fila notification.diagnostics. "
-                + "Registro manual — o OpenMetadata 2.0.x não tem conector de ingestão nativo para RabbitMQ.",
+                + "Tópicos registrados a partir dos contratos versionados em contracts/asyncapi/*.yaml — "
+                + "o OpenMetadata 2.0.x não tem conector de ingestão nativo para RabbitMQ, por isso o registro "
+                + "é feito por este publicador dedicado (job catalog-metadata do CI).",
             ["serviceType"] = ServiceType,
             ["connection"] = new JsonObject
             {
@@ -78,9 +75,11 @@ public static class PayloadBuilder
 
     /// <summary>
     /// Payload de upsert de um tópico (<c>/api/v1/topics</c>), referenciando o
-    /// serviço de mensageria pelo nome.
+    /// serviço de mensageria pelo nome. A descrição vem do canal AsyncAPI de
+    /// origem (<see cref="AsyncApiChannelReader"/>); um fallback genérico é
+    /// usado quando o canal não declara <c>description</c>.
     /// </summary>
-    public static string BuildTopicPayload(string topicName)
+    public static string BuildTopicPayload(string topicName, string description = "")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(topicName);
 
@@ -88,7 +87,9 @@ public static class PayloadBuilder
         {
             ["name"] = topicName,
             ["displayName"] = topicName,
-            ["description"] = $"Exchange/fila {topicName} do vhost /localize-stay (topologia de diagnóstico, V-03).",
+            ["description"] = string.IsNullOrWhiteSpace(description)
+                ? $"Exchange/fila {topicName} do vhost /localize-stay."
+                : description,
             ["service"] = new JsonObject
             {
                 ["type"] = "messagingService",
@@ -101,11 +102,12 @@ public static class PayloadBuilder
     }
 
     /// <summary>
-    /// Payloads de upsert dos dois tópicos reais de V-03, na ordem de
-    /// <see cref="TopicNames" />.
+    /// Payloads de upsert de todos os canais lidos de
+    /// <c>contracts/asyncapi/*.yaml</c>, na ordem em que foram fornecidos.
     /// </summary>
-    public static IReadOnlyList<(string Name, string Payload)> BuildTopicPayloads() =>
-        TopicNames.Select(name => (name, BuildTopicPayload(name))).ToList();
+    public static IReadOnlyList<(string Name, string Payload)> BuildTopicPayloads(
+        IEnumerable<(string Name, string Description)> channels) =>
+        channels.Select(c => (c.Name, BuildTopicPayload(c.Name, c.Description))).ToList();
 
     private static JsonArray TagLabels() =>
     [

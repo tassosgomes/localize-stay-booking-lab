@@ -318,6 +318,89 @@ jobs:
           export "${ENVKEY}=${CONN}"
           dotnet ef database update --project "$INFRA" --startup-project "$STARTUP"
 
+  # Publica contracts/openapi (conector nativo `rest`), contracts/asyncapi
+  # (publicador dedicado — OpenMetadata 2.0.x não tem conector de ingestão
+  # nativo para RabbitMQ) e contracts/data-contracts (Custom Properties em
+  # tables) no OpenMetadata, além de rodar a ingestão de schema Postgres que
+  # antes era um checkpoint manual (ver scripts/openmetadata/README.md).
+  # Roda no runner homelab pelo mesmo motivo de migrate/deploy:
+  # openmetadata.lab.tasso.dev.br só é alcançável pela LAN do infra.
+  catalog-metadata:
+    needs: [dotnet, migrate]
+    if: |
+      always() &&
+      github.event_name == 'push' &&
+      needs.dotnet.result != 'failure' &&
+      needs.migrate.result != 'failure'
+    runs-on: [self-hosted, homelab]
+    env:
+      OPENMETADATA_BASE_URL: ${{ vars.OPENMETADATA_BASE_URL }}
+      OPENMETADATA_INGESTION_JWT: ${{ secrets.OPENMETADATA_INGESTION_JWT }}
+      # Nomes esperados pelos arquivos scripts/openmetadata/ingestion-*.yaml
+      # (mesma credencial dos dois de cima, mapeada para as variáveis que o
+      # `metadata ingest` substitui via ${VAR}).
+      OM_SERVER_HOST_PORT: ${{ vars.OPENMETADATA_BASE_URL }}
+      OM_INGESTION_JWT: ${{ secrets.OPENMETADATA_INGESTION_JWT }}
+      OM_POSTGRES_PASSWORD: ${{ secrets.OM_POSTGRES_READER_PASSWORD }}
+      # Mesmas vars já usadas pelo job migrate para alcançar o postgres-main
+      # a partir do runner self-hosted (LAN, fora da rede interna do Coolify).
+      OM_POSTGRES_HOST_PORT: ${{ vars.POSTGRES_MAIN_HOST }}:${{ vars.POSTGRES_MAIN_PORT }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      # Pinado à versão do servidor (2.0.1, ver roteiro.md do infra). Extra
+      # `rest` cobre o conector OpenAPI usado abaixo — confirmar no primeiro
+      # run real se o nome do extra é este ou se o source `rest` já vem no
+      # core do pacote.
+      - name: Instalar openmetadata-ingestion
+        run: pip install "openmetadata-ingestion[postgres,rest]==2.0.1"
+
+      - name: Ingestão de schema Postgres
+        run: metadata ingest -c scripts/openmetadata/ingestion-postgres.yaml
+
+      # openAPISchemaURL do conector `rest` exige http(s), não file://.
+      # Serve contracts/openapi/ só em 127.0.0.1, só durante este job.
+      - name: Servir contracts/openapi/ localmente
+        working-directory: contracts/openapi
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 &
+          echo $! > "${{ runner.temp }}/openapi-http-server.pid"
+          for _ in $(seq 1 10); do
+            curl -sf -o /dev/null http://127.0.0.1:8000/catalog.json && break
+            sleep 1
+          done
+
+      - name: Ingestão OpenAPI (catalog)
+        run: metadata ingest -c scripts/openmetadata/ingestion-openapi-catalog.yaml
+
+      - name: Ingestão OpenAPI (booking)
+        run: metadata ingest -c scripts/openmetadata/ingestion-openapi-booking.yaml
+
+      # payment.json ainda não tem paths reais (ver contracts/openapi/) —
+      # sem YAML de ingestão até ter conteúdo.
+
+      - name: Encerrar servidor HTTP local
+        if: always()
+        run: kill "$(cat "${{ runner.temp }}/openapi-http-server.pid")" 2>/dev/null || true
+
+      - uses: actions/setup-dotnet@v6
+        # Mesma razão do job migrate: runner self-hosted não é root, sem
+        # permissão de escrita em /usr/share/dotnet.
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet-catalog-metadata
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publicar AsyncAPI no OpenMetadata
+        run: dotnet run --project scripts/openmetadata/register-rabbitmq
+
+      - name: Publicar Data Contracts no OpenMetadata
+        run: dotnet run --project scripts/openmetadata/register-data-contracts
+
   # Chama a API do Coolify diretamente (sem docker.sock no runner). Só
   # dispara deploy dos serviços cuja imagem realmente mudou nesse push.
   deploy:

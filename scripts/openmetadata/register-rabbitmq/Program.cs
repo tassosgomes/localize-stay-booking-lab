@@ -4,37 +4,67 @@ using System.Text;
 namespace RegisterRabbitMq;
 
 /// <summary>
-/// Executa o registro real do vhost <c>/localize-stay</c> no
-/// <c>ecad-dev-openmetadata</c> (task 9.0, V-06): upsert do serviço
-/// <c>CustomMessaging</c> + upsert dos dois tópicos de V-03.
-/// Uso destinado ao dono do homelab (verificação manual, fora do gate).
+/// Registra no OpenMetadata o vhost <c>/localize-stay</c> (upsert do serviço
+/// <c>CustomMessaging</c>) e um tópico por canal declarado em todo arquivo
+/// <c>contracts/asyncapi/*.yaml</c> do repositório. Roda automaticamente no
+/// job <c>catalog-metadata</c> do CI a cada push em <c>main</c> — o
+/// OpenMetadata 2.0.x não tem conector de ingestão nativo para RabbitMQ, daí
+/// este publicador dedicado em vez do conector padrão usado para OpenAPI.
 /// </summary>
 /// <remarks>
-/// Credencial: o Personal Access Token (escopo mínimo de escrita, gerado no
-/// próprio OpenMetadata — nunca o token administrativo do Coolify) é lido de
-/// <c>--pat &lt;token&gt;</c> ou da variável de ambiente
-/// <c>OPENMETADATA_PAT</c>, com precedência do argumento. Nenhum segredo é
-/// versionado ou impresso no log (o PAT é mascarado em caso de erro).
+/// Credencial: o token (JWT do bot de ingestão do OpenMetadata, ou PAT de
+/// escopo mínimo de escrita) é lido de <c>--pat &lt;token&gt;</c> ou da
+/// variável de ambiente <c>OPENMETADATA_INGESTION_JWT</c> (compatibilidade:
+/// <c>OPENMETADATA_PAT</c> também é aceita), com precedência do argumento.
+/// Nenhum segredo é versionado ou impresso no log (o token é mascarado em
+/// caso de erro).
 /// <para />
 /// Base da API em <c>--url &lt;base&gt;</c> ou <c>OPENMETADATA_BASE_URL</c>
 /// (padrão <c>http://localhost:8585/api</c>); os endpoints chamados são
 /// <c>/v1/services/messagingServices</c> e <c>/v1/topics</c> via PUT (upsert
-/// idempotente). <c>--dry-run</c> só imprime os payloads, sem rede.
+/// idempotente). <c>--asyncapi-dir &lt;path&gt;</c> aponta para os contratos
+/// (padrão <c>contracts/asyncapi</c>, relativo ao diretório de execução).
+/// <c>--dry-run</c> só imprime os payloads, sem rede.
 /// </remarks>
 public static class Program
 {
-    public const string PatEnvVar = "OPENMETADATA_PAT";
+    public const string PatEnvVar = "OPENMETADATA_INGESTION_JWT";
+
+    public const string LegacyPatEnvVar = "OPENMETADATA_PAT";
 
     public const string BaseUrlEnvVar = "OPENMETADATA_BASE_URL";
 
     public const string DefaultBaseUrl = "http://localhost:8585/api";
 
+    public const string DefaultAsyncApiDir = "contracts/asyncapi";
+
     public static async Task<int> Main(string[] args)
     {
         var options = ParseArgs(args);
 
+        if (!Directory.Exists(options.AsyncApiDir))
+        {
+            Console.Error.WriteLine($"Diretório de contratos AsyncAPI não encontrado: {options.AsyncApiDir}");
+            return 2;
+        }
+
+        var files = Directory.EnumerateFiles(options.AsyncApiDir, "*.yaml")
+            .OrderBy(f => f, StringComparer.Ordinal)
+            .ToList();
+        if (files.Count == 0)
+        {
+            Console.Error.WriteLine($"Nenhum contrato AsyncAPI (*.yaml) encontrado em {options.AsyncApiDir}");
+            return 2;
+        }
+
+        var channels = new List<(string Name, string Description)>();
+        foreach (var file in files)
+        {
+            channels.AddRange(AsyncApiChannelReader.ReadChannels(File.ReadAllText(file)));
+        }
+
         var servicePayload = PayloadBuilder.BuildMessagingServicePayload();
-        var topics = PayloadBuilder.BuildTopicPayloads();
+        var topics = PayloadBuilder.BuildTopicPayloads(channels);
 
         if (options.DryRun)
         {
@@ -73,11 +103,11 @@ public static class Program
             return 1;
         }
 
-        Console.WriteLine("Registro concluído: localize-stay-rabbitmq + 2 tópicos com tag localize-stay.");
+        Console.WriteLine($"Registro concluído: localize-stay-rabbitmq + {topics.Count} tópico(s) com tag localize-stay.");
         return 0;
     }
 
-    internal sealed record CliOptions(string? Pat, string BaseUrl, bool DryRun);
+    internal sealed record CliOptions(string? Pat, string BaseUrl, string AsyncApiDir, bool DryRun);
 
     internal static CliOptions ParseArgs(string[] args)
     {
@@ -88,6 +118,7 @@ public static class Program
             baseUrl = DefaultBaseUrl;
         }
 
+        var asyncApiDir = DefaultAsyncApiDir;
         var dryRun = false;
 
         for (var i = 0; i < args.Length; i++)
@@ -100,15 +131,19 @@ public static class Program
                 case "--url" when i + 1 < args.Length:
                     baseUrl = args[++i];
                     break;
+                case "--asyncapi-dir" when i + 1 < args.Length:
+                    asyncApiDir = args[++i];
+                    break;
                 case "--dry-run":
                     dryRun = true;
                     break;
                 default:
-                    throw new ArgumentException($"Argumento desconhecido: {args[i]}. Uso: [--pat <token>] [--url <base>] [--dry-run]");
+                    throw new ArgumentException(
+                        $"Argumento desconhecido: {args[i]}. Uso: [--pat <token>] [--url <base>] [--asyncapi-dir <path>] [--dry-run]");
             }
         }
 
-        return new CliOptions(pat, baseUrl, dryRun);
+        return new CliOptions(pat, baseUrl, asyncApiDir, dryRun);
     }
 
     internal static string? ResolvePat(string? cliPat, Func<string, string?> getEnvironmentVariable)
@@ -118,7 +153,9 @@ public static class Program
             return cliPat;
         }
 
-        return getEnvironmentVariable(PatEnvVar);
+        return getEnvironmentVariable(PatEnvVar) is { Length: > 0 } jwt
+            ? jwt
+            : getEnvironmentVariable(LegacyPatEnvVar);
     }
 
     private static async Task<int> PutAsync(HttpClient http, string path, string payload, string label)

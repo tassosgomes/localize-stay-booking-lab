@@ -54,6 +54,24 @@ ou as senhas devem ser lidas de um gerenciador de segredos. Cada serviço usa
 depois a sua senha via `dotnet user-secrets` local (nunca em
 `appsettings*.json` versionado).
 
+## Opcional — role de leitura para o OpenMetadata
+
+`005-openmetadata-reader.sql` é independente da sequência 001-004 (pode
+rodar antes ou depois, a qualquer momento) e cria o role `openmetadata_reader`
+usado pela ingestão de schema do OpenMetadata
+(`scripts/openmetadata/ingestion-postgres.yaml`, job `catalog-metadata` do
+CI). Só `CONNECT` + `USAGE` + `SELECT` nos 4 schemas do projeto, sem `CREATE`:
+
+```bash
+export OPENMETADATA_READER_PASSWORD="$(openssl rand -base64 24)"
+$PSQL -d postgres \
+  -v reader_password="$OPENMETADATA_READER_PASSWORD" \
+  -f db/bootstrap/005-openmetadata-reader.sql
+```
+
+Depois, salve `$OPENMETADATA_READER_PASSWORD` como o secret
+`OM_POSTGRES_READER_PASSWORD` no GitHub — ver `scripts/openmetadata/README.md`.
+
 ## Resultado esperado
 
 Database `localize_stay` com schemas `catalog` (owner `catalog_role`),

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>register-data-contracts</AssemblyName>
+    <RootNamespace>RegisterDataContracts</RootNamespace>
+    <Description>Publica contracts/data-contracts/*.md como description + Custom Properties nas tables do OpenMetadata.</Description>
+  </PropertyGroup>
+
+</Project>

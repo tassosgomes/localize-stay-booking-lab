@@ -33,5 +33,7 @@
     <PackageVersion Include="Moq" Version="4.20.72" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.2.2" />
     <PackageVersion Include="Rmq.CloudEvents" Version="1.1.1" />
+    <!-- scripts/openmetadata: parsing dos contratos AsyncAPI (contracts/asyncapi/*.yaml). -->
+    <PackageVersion Include="YamlDotNet" Version="18.1.0" />
   </ItemGroup>
 </Project>

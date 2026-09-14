@@ -1,0 +1,32 @@
+# Config de ingestão do OpenMetadata (job catalog-metadata do CI) — publica
+# contracts/openapi/catalog.json usando o conector nativo `rest` (source
+# type: rest), que lê um openAPISchemaURL e cria apiServices/apiCollections/
+# apiEndpoints. Executada automaticamente a cada push em main, NÃO manual.
+#
+# openAPISchemaURL exige http(s) (não aceita file://); o job sobe um
+# `python3 -m http.server` efêmero em 127.0.0.1 servindo contracts/openapi/
+# antes de rodar `metadata ingest -c` com este arquivo, e derruba o servidor
+# depois — nada fica exposto fora do runner self-hosted.
+source:
+  type: rest
+  serviceName: localize-stay-catalog-api
+  serviceConnection:
+    config:
+      type: Rest
+      openAPISchemaURL: http://127.0.0.1:8000/catalog.json
+  sourceConfig:
+    config:
+      type: ApiMetadata
+      markDeletedApiCollections: true
+      overrideMetadata: false
+sink:
+  type: metadata-rest
+  config: {}
+workflowConfig:
+  openMetadataServerConfig:
+    # Base da API do openmetadata.lab.tasso.dev.br; token via ambiente no
+    # executor (nunca versionado) — ver scripts/openmetadata/README.md.
+    hostPort: ${OM_SERVER_HOST_PORT}
+    authProvider: openmetadata
+    securityConfig:
+      jwtToken: ${OM_INGESTION_JWT}

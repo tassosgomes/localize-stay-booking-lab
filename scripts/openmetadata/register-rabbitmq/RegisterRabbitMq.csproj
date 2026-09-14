@@ -8,4 +8,8 @@
     <Description>Registra o vhost /localize-stay como CustomMessaging no OpenMetadata (V-06).</Description>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+
 </Project>

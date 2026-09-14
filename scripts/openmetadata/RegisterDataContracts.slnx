@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/register-data-contracts/">
+    <Project Path="register-data-contracts/RegisterDataContracts.csproj" />
+  </Folder>
+  <Project Path="RegisterDataContracts.Tests/RegisterDataContracts.Tests.csproj" />
+</Solution>
