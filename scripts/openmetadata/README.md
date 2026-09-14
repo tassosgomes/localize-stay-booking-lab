@@ -46,6 +46,13 @@ primeira execução real do job `catalog-metadata`:
    escrita sobre `databaseServices`/`tables`, `apiServices`/`apiCollections`/
    `apiEndpoints` e `messagingServices`/`topics`; salvar o JWT como o secret
    `OPENMETADATA_INGESTION_JWT` no GitHub.
+   - **Atenção**: o compose do OpenMetadata só dá permissão elevada
+     automática ao principal chamado exatamente `ingestion-bot`
+     (`AUTHORIZER_INGESTION_PRINCIPALS`). Um bot com outro nome (ex.: o
+     `robot` usado neste projeto) precisa de um Role explícito com
+     `Create`/`EditAll` nesses recursos (Settings → Access → Roles/Policies,
+     ou simplesmente atribuir o Role `Admin` ao usuário do bot) — sem isso a
+     ingestão falha com `403 ... operations [Create] not allowed`.
 2. Criar a repo variable `OPENMETADATA_BASE_URL` =
    `https://openmetadata.lab.tasso.dev.br/api`.
 3. Criar o role `openmetadata_reader` no `postgres-main` rodando
