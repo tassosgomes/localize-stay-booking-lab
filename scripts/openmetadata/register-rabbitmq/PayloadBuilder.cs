@@ -14,14 +14,16 @@ namespace RegisterRabbitMq;
 /// </summary>
 /// <remarks>
 /// Contrato seguido (OpenMetadata 2.0.x, confirmado contra o servidor real —
-/// PUT responde 405 nesses dois recursos, POST é o create-or-update correto):
+/// PUT é create-or-update por nome; POST só cria e responde 409 "Entity
+/// already exists" numa segunda execução, por isso não serve pra um
+/// publicador que roda em todo push):
 /// <list type="bullet">
-/// <item><c>POST /api/v1/services/messagingServices</c> (upsert por nome) com
+/// <item><c>PUT /api/v1/services/messagingServices</c> (upsert por nome) com
 /// <c>serviceType: CustomMessaging</c> — valor válido do enum
 /// <c>messagingServiceType</c>, com config de conexão do tipo
 /// <c>CustomMessaging</c>. Por isso nenhum workaround (ex.: Kafka genérico) é
 /// necessário no payload.</item>
-/// <item><c>POST /api/v1/topics</c> (upsert por nome), um por canal declarado
+/// <item><c>PUT /api/v1/topics</c> (upsert por nome), um por canal declarado
 /// nos arquivos AsyncAPI (exchange para bindings <c>routingKey</c>, fila para
 /// bindings <c>queue</c>).</item>
 /// </list>
