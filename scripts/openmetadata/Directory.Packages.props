@@ -1,0 +1,20 @@
+<Project>
+  <!-- Isola o gerenciamento central de pacotes desta subarvore do
+       Directory.Packages.props da raiz: scripts/openmetadata nao e um
+       servico da aplicacao, e listar pacotes aqui no arquivo raiz faria o
+       `paths-filter` do ci.yml tratar catalog/booking/payment/
+       notification-worker como alterados (Directory.Packages.props esta na
+       lista de gatilhos de todos eles) sempre que uma dependencia so destas
+       ferramentas mudasse - disparando build/migrate/deploy reais sem
+       nenhum codigo de servico ter mudado. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
+    <!-- Parsing dos contratos AsyncAPI (contracts/asyncapi/*.yaml). -->
+    <PackageVersion Include="YamlDotNet" Version="18.1.0" />
+  </ItemGroup>
+</Project>
