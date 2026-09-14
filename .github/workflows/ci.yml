@@ -292,6 +292,14 @@ jobs:
         if: matrix.service != 'notification-worker'
         run: dotnet tool restore
 
+      # `dotnet ef database update` builda o projeto antes de rodar; sem
+      # restore prévio falha com NETSDK1004 (assets file not found) — o
+      # checkout usa `clean: true` (git clean -ffdx), então bin/obj nunca
+      # sobrevivem de um run pro outro neste runner self-hosted.
+      - name: Restore projeto
+        if: matrix.service != 'notification-worker'
+        run: dotnet restore "${{ matrix.sln }}"
+
       - name: Apply migration
         if: matrix.service != 'notification-worker'
         run: |
