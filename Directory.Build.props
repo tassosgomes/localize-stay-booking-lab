@@ -1,3 +1,8 @@
+<!-- Este arquivo está na lista de gatilhos do paths-filter do ci.yml para
+     TODOS os serviços (catalog/booking/payment/notification-worker): editá-lo
+     builda+testa+roda migrate+deploy dos 4, mesmo sem mudança de código de
+     serviço. Ver scripts/openmetadata/Directory.Packages.props para o motivo
+     de isolar dependências de ferramentas fora deste arquivo raiz. -->
 <Project>
   <PropertyGroup>
     <Nullable>enable</Nullable>
