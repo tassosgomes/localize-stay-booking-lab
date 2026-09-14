@@ -20,8 +20,11 @@ source:
       # partir do runner self-hosted na LAN.
       hostPort: ${OM_POSTGRES_HOST_PORT}
       username: openmetadata_reader
+      # authType.password (não um `password` solto) — schema do PostgresConnection
+      # rejeita `password` como parâmetro de top-level ("Extra parameter 'password'").
       # Injetada no ambiente de execução — ver comentário no topo.
-      password: ${OM_POSTGRES_PASSWORD}
+      authType:
+        password: ${OM_POSTGRES_PASSWORD}
       database: localize_stay
       ingestAllDatabases: false
   sourceConfig:
