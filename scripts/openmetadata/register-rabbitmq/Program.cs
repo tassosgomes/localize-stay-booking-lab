@@ -21,8 +21,10 @@ namespace RegisterRabbitMq;
 /// <para />
 /// Base da API em <c>--url &lt;base&gt;</c> ou <c>OPENMETADATA_BASE_URL</c>
 /// (padrão <c>http://localhost:8585/api</c>); os endpoints chamados são
-/// <c>/v1/services/messagingServices</c> e <c>/v1/topics</c> via PUT (upsert
-/// idempotente). <c>--asyncapi-dir &lt;path&gt;</c> aponta para os contratos
+/// <c>/v1/services/messagingServices</c> e <c>/v1/topics</c> via POST — a
+/// API do OpenMetadata usa POST (não PUT, que responde 405) para create-or-
+/// update por nome nesses recursos. <c>--asyncapi-dir &lt;path&gt;</c> aponta
+/// para os contratos
 /// (padrão <c>contracts/asyncapi</c>, relativo ao diretório de execução).
 /// <c>--dry-run</c> só imprime os payloads, sem rede.
 /// </remarks>
@@ -68,11 +70,11 @@ public static class Program
 
         if (options.DryRun)
         {
-            Console.WriteLine("PUT /v1/services/messagingServices");
+            Console.WriteLine("POST /v1/services/messagingServices");
             Console.WriteLine(servicePayload);
             foreach (var (name, payload) in topics)
             {
-                Console.WriteLine($"PUT /v1/topics [{name}]");
+                Console.WriteLine($"POST /v1/topics [{name}]");
                 Console.WriteLine(payload);
             }
 
@@ -91,10 +93,10 @@ public static class Program
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", pat);
 
         var failures = 0;
-        failures += await PutAsync(http, "/v1/services/messagingServices", servicePayload, "messaging service");
+        failures += await PostAsync(http, "/v1/services/messagingServices", servicePayload, "messaging service");
         foreach (var (name, payload) in topics)
         {
-            failures += await PutAsync(http, "/v1/topics", payload, $"topic {name}");
+            failures += await PostAsync(http, "/v1/topics", payload, $"topic {name}");
         }
 
         if (failures > 0)
@@ -158,25 +160,25 @@ public static class Program
             : getEnvironmentVariable(LegacyPatEnvVar);
     }
 
-    private static async Task<int> PutAsync(HttpClient http, string path, string payload, string label)
+    private static async Task<int> PostAsync(HttpClient http, string path, string payload, string label)
     {
         using var content = new StringContent(payload, Encoding.UTF8, "application/json");
         try
         {
-            using var response = await http.PutAsync(path, content);
+            using var response = await http.PostAsync(path, content);
             var body = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                Console.Error.WriteLine($"PUT {path} ({label}) -> {(int)response.StatusCode}. Resposta (PAT omitido): {body}");
+                Console.Error.WriteLine($"POST {path} ({label}) -> {(int)response.StatusCode}. Resposta (PAT omitido): {body}");
                 return 1;
             }
 
-            Console.WriteLine($"PUT {path} ({label}) -> {(int)response.StatusCode} OK");
+            Console.WriteLine($"POST {path} ({label}) -> {(int)response.StatusCode} OK");
             return 0;
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"PUT {path} ({label}) falhou: {ex.GetType().Name} (detalhes de rede, PAT omitido)");
+            Console.Error.WriteLine($"POST {path} ({label}) falhou: {ex.GetType().Name} (detalhes de rede, PAT omitido)");
             return 1;
         }
     }

@@ -13,15 +13,16 @@ namespace RegisterRabbitMq;
 /// push em <c>main</c> (job <c>catalog-metadata</c>).
 /// </summary>
 /// <remarks>
-/// Contrato seguido (OpenMetadata 2.0.x, confirmado na documentação pública):
+/// Contrato seguido (OpenMetadata 2.0.x, confirmado contra o servidor real —
+/// PUT responde 405 nesses dois recursos, POST é o create-or-update correto):
 /// <list type="bullet">
-/// <item><c>PUT /api/v1/services/messagingServices</c> (upsert) com
+/// <item><c>POST /api/v1/services/messagingServices</c> (upsert por nome) com
 /// <c>serviceType: CustomMessaging</c> — valor válido do enum
 /// <c>messagingServiceType</c>, com config de conexão do tipo
 /// <c>CustomMessaging</c>. Por isso nenhum workaround (ex.: Kafka genérico) é
 /// necessário no payload.</item>
-/// <item><c>PUT /api/v1/topics</c> (upsert), um por canal declarado nos
-/// arquivos AsyncAPI (exchange para bindings <c>routingKey</c>, fila para
+/// <item><c>POST /api/v1/topics</c> (upsert por nome), um por canal declarado
+/// nos arquivos AsyncAPI (exchange para bindings <c>routingKey</c>, fila para
 /// bindings <c>queue</c>).</item>
 /// </list>
 /// Toda entidade recebe a tag <c>localize-stay</c> para não confundir com os
